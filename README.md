@@ -12,7 +12,7 @@ Dieses Repository enthält interne Tools und Dokumentationen für die Dispositio
 
 | Tool | Beschreibung | Link |
 |------|-------------|------|
-| 🗺️ **BML Austria Interaktive Dispo Karte** | Interaktive Karte der Liefergebiete in Österreich | [Karte öffnen](https://bmlzeller.github.io/bgo_montage_und_logistik/austria_zone_cargo_map/index.html) |
+| 🗺️ **BML Austria Interaktive Dispo Karte** | Interaktive Karte der Liefergebiete in Österreich | [Karte öffnen](https://bmlzeller.github.io/bgo_montage_und_logistik/austria_cargo_zone_map/index.html) |
 | 📝 **Dokumentationen** | Anleitungen und Prozessbeschreibungen | [Dokumente ansehen](https://bmlzeller.github.io/bgo_montage_und_logistik/documentation.html) |
 | 📊 **Excel-Makros** | Tools für effiziente Datenverarbeitung | [Zu den Makros](https://github.com/BMLZellEr/bgo_montage_und_logistik/tree/main/excel-makros) |
 
