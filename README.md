@@ -6,8 +6,6 @@
 
 **➡️ [Zur interaktiven Website](https://bmlzeller.github.io/bgo_montage_und_logistik/)**
 
-![Website Preview](https://user-images.githubusercontent.com/YOUR_USER_ID/bgo_montage_und_logistik/screenshot.png)
-
 ## Werkzeuge und Ressourcen
 
 Dieses Repository enthält interne Tools und Dokumentationen für die Disposition bei BGO Montage & Logistik GmbH.
