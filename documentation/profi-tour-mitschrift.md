@@ -1,71 +1,9 @@
-# 🏢 BGO Mitschrift Erik Zellhofer 🏢
-
-## 📈 Wöchentlicher Chronologischer Ablauf (Hersteller Hali 💙)
-
-- **📅 Montag:**
-    - ⌛ **Daily Quests** 
-    * 📄 **Frachtbriefe & Tourenpläne für SC-Leiter** => Für **$Folge_KW_01** -> Bsp.: **Montag_KW_08 für KW_09** => **[Guide](#-guide-für-frachtbriefe--tourenpläne-2-pdfs)**
-    * 📑 **Auslieferlisten für SC-Leiter** => Für **$Folge_KW_01** -> Bsp.: **Montag_KW_08 für KW_09** => **[Guide](#-guide-für-auslieferlisten)**
-    * ▶️ **Starten der Planung von mindestens $Folge_KW_4** => Bsp.: **Montag_KW_08 für KW_12** => **[Guide](#-guide-für-das-erstellen-von-wab-touren--direktpost)**
-- **📅 Dienstag:**
-    - ⌛ **Daily Quests**
-    - **📗 Avisieren mindestens $Folge_KW_2**=> Bsp.: **Dienstag_KW08 für KW_10** => **[Guide](#-avisieren)**
-- **📅 Mittwoch:**
-    - ⌛ **Daily Quests**
-- **📅 Donnerstag:**
-    - ⌛ **Daily Quests**
-    * 📦 **Produktions-Export (WAB's-Export)**  => Für **MINDESTENS $Folge_KW_04** (Bsp: **Donnerstag_KW_08 für KW_12**) => **[Guide](#-guide-für-die-abgabe-der-produktion)**
-- **📅 Freitag:**
-    - ⌛ **Daily Quests** 
-    * 🚚 **Transportbestellung** => Für **$Folge_KW_02** (Bsp: **Freitag_KW_08 für KW_10**) => **[Guide](#-guide-für-die-transportbestellung)**
-    * 📑 **Auslieferliste für Hersteller** => Für **$Folge_KW_01** (Bsp: **Freitag_KW_08 für KW_09**) => **[Guide](#-guide-für-auslieferlisten)**
-    * 🔨 **Möglicherweise Glättung der Produktion** => Für **Abgabe_KW** der **Produktion** (Bsp.: **Freitag_KW_08 für KW_12**) => **[Guide](#-guide-für-die-glättung-der-produktion)**
-
-- **⌛ Daily Quests:**
-    - ♻️ Bei jedem Import von Hersteller_H **06:30 & 14:00 Täglich** (Hr. Roither für Probleme)
-        - 🔄 **Nachplanen** => **Alle neuen Aufträge** wieder verplanen für **$Folge_KW_1 & $Folge_KW_2 & $Folge_KW_3 & $Folge_KW_4** => **[Guide](#-nachplanen)**
-        - 🔶 Ausnahme **Freitags 14:00: Nur DIREKT/POST** Lieferungen verplanen **(Runde der Mitarbeiter)** 
-    - 📺 **TV's** machen die Anfallen! => **[Guide](#-guide-für-tv-tv--termin-Verspätung)**
-
-## 🌍 Gebiete Erik (Hersteller NOS 💚) 
-- **⛰️ Voradelberg - [VBG] - (SC Dornbirn) - {Partner=ULGB} +  Deutschland Süden (PLZ 8XXXX) [DE] + Liechtenstein [FL] + Schweiz [CH]**
-    - **🚀 Untertouren** macht **[⛰️ ULGB Voradelberg ist Anders](https://github.com/Kingslayer9988/bgo_holding/blob/main/documentation/Profi-Tour.md#%EF%B8%8F-vorarlberg-ist-anders)**
-    * **NOS = 1-2 WAB pro 📅 KW** lt. Helmuth  04.03.2025
-    * **(J)** = Zone in **Cargo-Support**
-    * **SC Dornbirn** = SC-Leiter => **Oliver L. (ULGB)**
-    * **❌ Kein Küchenmonteur** => **L&M Küchenmontage**
-
-- **🚠 Tirol - [T] - (SC Innsbruck) + 🇮🇹  Italien [ITA]**
-    - **1️⃣ Gebiet das ich verplanen soll**
-    - **NOS 💚 = 2-4 WAB pro 📅 KW** lt. Helmuth  04.03.2025
-    * **(I)** = Zone in **Cargo-Support**
-    * **SC-Leiter** => **Thonhauser F. & Agostini T.**
-    * **❌ Kein Küchenmonteur** => **L&M Küchenmontage**
-
-- **⛵ Kärnten - [KTN] - (SC Klagenfurt) - {Partner=Riegler}**
-    - **NOS 💚 = 1-2 WAB pro 📅 KW** lt. Helmuth  04.03.2025
-    * **(G)** = Zone in **Cargo-Support**
-    * **SC Klagenfurt** => SC-Leiter => **Koeck M.  & Bader S.**
-    * **🚀 Untertouren & 📗 Avisieren** macht **[⛵ Riegler Kärnten bei NOS ist Anders ~ Wie ULGB](https://github.com/Kingslayer9988/bgo_holding/blob/main/documentation/Profi-Tour.md#%EF%B8%8F-vorarlberg-ist-anders)**
-    * **Küchenmonteur vorhanden ✔️**
-    * **Kleines SC-Lager** => **Max. 2 LKW pro Tag (1x Platz & 1x Rampe)**
-
-- **🌳 Steiermark - [STMK] - (SC Graz) + Kroatien [HR] + Slovakei [SI] + Solvenien [SLO]**
-    - **NOS 💚 = 5 WAB pro 📅 KW** lt. Helmuth  04.03.2025
-    * **(F)** = Zone in **Cargo-Support**
-    * **SC Graz** => SC-Leiter => **Koeck M.  & Bader S.**
-    * **❌ Kein Küchenmonteur aber gute Monteure (Außnahme) ✔️** 
-
-- **🇩🇪 Deutschland [DE] {Partner=Relogg}** => **❓ Noch nicht sicher für mich** => (UNSURE ASK DENISA❓)
-    * **(???) => probably  [DE]** = Zone in **Cargo-Support**
-    * **Ähnlich wie Voradelberg (Relogg ~ ULGB) = 🚀 Untertouren & 📗 Avisieren**
-
 # 🚥 Profi-Tour for Dummies 🚥
 
-### ⚖️ LAW Number One ➡️ Don't mess with Profi-Tour-Profile from Isabel
+### ⚖️ LAW Number One ➡️ Immer eigenes Profil verwenden
 ### ⚖️ LAW Number Two ➡️ Bei jeder Änderung -> Export für Hersteller
-### ⚖️ LAW Number Three ➡️ Don't even try SPECIAL_LETTERS(§$%) in Profitour
-### ⚖️ LAW Number Four ➡️ Don't open many Instances because of double "Übernahme in Planung"
+### ⚖️ LAW Number Three ➡️ Keine Special Letters (§$%) in Profitour
+### ⚖️ LAW Number Four ➡️ Aufpassen beim öffnen mehrer Instanzen
 ---
 
 ## 💎 General Infos:
@@ -414,6 +352,67 @@ Danke im Voraus.
 - Auftrag ist nun im **Unbearbeitet-Fenster** => Splitten, WAB, etc. => **behandeln wie neuen Auftag**
 - Bei **Verschiebungen** auch den **Vorproduktion-Nummernkreis** verwenden wenn Produktionsdatum **mehr als 1 Werktag** von **Lieferdatum** entfernt ist.
     - Außnahme bei **🍳 Küchen** nicht den **Vorproduktion-Nummernkreis** verwenden!
+
+## 📈 Wöchentlicher Chronologischer Ablauf (Hersteller Hali 💙)
+
+- **📅 Montag:**
+    - ⌛ **Daily Quests** 
+    * 📄 **Frachtbriefe & Tourenpläne für SC-Leiter** => Für **$Folge_KW_01** -> Bsp.: **Montag_KW_08 für KW_09** => **[Guide](#-guide-für-frachtbriefe--tourenpläne-2-pdfs)**
+    * 📑 **Auslieferlisten für SC-Leiter** => Für **$Folge_KW_01** -> Bsp.: **Montag_KW_08 für KW_09** => **[Guide](#-guide-für-auslieferlisten)**
+    * ▶️ **Starten der Planung von mindestens $Folge_KW_4** => Bsp.: **Montag_KW_08 für KW_12** => **[Guide](#-guide-für-das-erstellen-von-wab-touren--direktpost)**
+- **📅 Dienstag:**
+    - ⌛ **Daily Quests**
+    - **📗 Avisieren mindestens $Folge_KW_2**=> Bsp.: **Dienstag_KW08 für KW_10** => **[Guide](#-avisieren)**
+- **📅 Mittwoch:**
+    - ⌛ **Daily Quests**
+- **📅 Donnerstag:**
+    - ⌛ **Daily Quests**
+    * 📦 **Produktions-Export (WAB's-Export)**  => Für **MINDESTENS $Folge_KW_04** (Bsp: **Donnerstag_KW_08 für KW_12**) => **[Guide](#-guide-für-die-abgabe-der-produktion)**
+- **📅 Freitag:**
+    - ⌛ **Daily Quests** 
+    * 🚚 **Transportbestellung** => Für **$Folge_KW_02** (Bsp: **Freitag_KW_08 für KW_10**) => **[Guide](#-guide-für-die-transportbestellung)**
+    * 📑 **Auslieferliste für Hersteller** => Für **$Folge_KW_01** (Bsp: **Freitag_KW_08 für KW_09**) => **[Guide](#-guide-für-auslieferlisten)**
+    * 🔨 **Möglicherweise Glättung der Produktion** => Für **Abgabe_KW** der **Produktion** (Bsp.: **Freitag_KW_08 für KW_12**) => **[Guide](#-guide-für-die-glättung-der-produktion)**
+
+- **⌛ Daily Quests:**
+    - ♻️ Bei jedem Import von Hersteller_H **06:30 & 14:00 Täglich** (Hr. Roither für Probleme)
+        - 🔄 **Nachplanen** => **Alle neuen Aufträge** wieder verplanen für **$Folge_KW_1 & $Folge_KW_2 & $Folge_KW_3 & $Folge_KW_4** => **[Guide](#-nachplanen)**
+        - 🔶 Ausnahme **Freitags 14:00: Nur DIREKT/POST** Lieferungen verplanen **(Runde der Mitarbeiter)** 
+    - 📺 **TV's** machen die Anfallen! => **[Guide](#-guide-für-tv-tv--termin-Verspätung)**
+
+## 🌍 Gebiete Erik (Hersteller NOS 💚) 
+- **⛰️ Voradelberg - [VBG] - (SC Dornbirn) - {Partner=ULGB} +  Deutschland Süden (PLZ 8XXXX) [DE] + Liechtenstein [FL] + Schweiz [CH]**
+    - **🚀 Untertouren** macht **[⛰️ ULGB Voradelberg ist Anders](https://github.com/Kingslayer9988/bgo_holding/blob/main/documentation/Profi-Tour.md#%EF%B8%8F-vorarlberg-ist-anders)**
+    * **NOS = 1-2 WAB pro 📅 KW** lt. Helmuth  04.03.2025
+    * **(J)** = Zone in **Cargo-Support**
+    * **SC Dornbirn** = SC-Leiter => **Oliver L. (ULGB)**
+    * **❌ Kein Küchenmonteur** => **L&M Küchenmontage**
+
+- **🚠 Tirol - [T] - (SC Innsbruck) + 🇮🇹  Italien [ITA]**
+    - **1️⃣ Gebiet das ich verplanen soll**
+    - **NOS 💚 = 2-4 WAB pro 📅 KW** lt. Helmuth  04.03.2025
+    * **(I)** = Zone in **Cargo-Support**
+    * **SC-Leiter** => **Thonhauser F. & Agostini T.**
+    * **❌ Kein Küchenmonteur** => **L&M Küchenmontage**
+
+- **⛵ Kärnten - [KTN] - (SC Klagenfurt) - {Partner=Riegler}**
+    - **NOS 💚 = 1-2 WAB pro 📅 KW** lt. Helmuth  04.03.2025
+    * **(G)** = Zone in **Cargo-Support**
+    * **SC Klagenfurt** => SC-Leiter => **Koeck M.  & Bader S.**
+    * **🚀 Untertouren & 📗 Avisieren** macht **[⛵ Riegler Kärnten bei NOS ist Anders ~ Wie ULGB](https://github.com/Kingslayer9988/bgo_holding/blob/main/documentation/Profi-Tour.md#%EF%B8%8F-vorarlberg-ist-anders)**
+    * **Küchenmonteur vorhanden ✔️**
+    * **Kleines SC-Lager** => **Max. 2 LKW pro Tag (1x Platz & 1x Rampe)**
+
+- **🌳 Steiermark - [STMK] - (SC Graz) + Kroatien [HR] + Slovakei [SI] + Solvenien [SLO]**
+    - **NOS 💚 = 5 WAB pro 📅 KW** lt. Helmuth  04.03.2025
+    * **(F)** = Zone in **Cargo-Support**
+    * **SC Graz** => SC-Leiter => **Koeck M.  & Bader S.**
+    * **❌ Kein Küchenmonteur aber gute Monteure (Außnahme) ✔️** 
+
+- **🇩🇪 Deutschland [DE] {Partner=Relogg}** => **❓ Noch nicht sicher für mich** => (UNSURE ASK DENISA❓)
+    * **(???) => probably  [DE]** = Zone in **Cargo-Support**
+    * **Ähnlich wie Voradelberg (Relogg ~ ULGB) = 🚀 Untertouren & 📗 Avisieren**
+
 
 ## Profi-Tour besteht aus 2-Teilen bzw. Ansichten (Datenbank & Planungs - Ansicht)
 ### Ansicht_1 = Datenbank_Ansicht
