@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGO Montage & Logistik - Interne Tools</title>
+    <style>
+        :root {
+            --primary-color: #3B71A9;
+            --secondary-color: #1E3C5A;
+            --accent-color: #f8f9fa;
+            --text-color: #333;
+            --light-bg: #f8f9fa;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        header {
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 15px 0;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo {
+            height: 60px;
+        }
+        
+        .logo-text {
+            margin-left: 15px;
+        }
+        
+        .logo-text h1 {
+            font-size: 1.5rem;
+            color: var(--secondary-color);
+            margin: 0;
+        }
+        
+        .logo-text p {
+            font-size: 0.9rem;
+            color: var(--primary-color);
+            margin: 0;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+        
+        nav ul li {
+            margin-left: 20px;
+        }
+        
+        nav ul li a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        nav ul li a:hover {
+            color: var(--primary-color);
+        }
+        
+        main {
+            flex: 1;
+            padding: 40px 0;
+        }
+        
+        .intro {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .intro h2 {
+            font-size: 1.8rem;
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+        }
+        
+        .intro p {
+            max-width: 800px;
+            margin: 0 auto;
+            color: #666;
+        }
+        
+        .tools {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+        }
+        
+        .tool-card {
+            background-color: var(--light-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            width: 100%;
+            max-width: 320px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tool-icon {
+            height: 120px;
+            background-color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+        }
+        
+        .tool-content {
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .tool-content h3 {
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .tool-content p {
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        footer {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: auto;
+        }
+        
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .footer-info {
+            font-size: 0.9rem;
+        }
+        
+        .footer-links {
+            display: flex;
+        }
+        
+        .footer-links a {
+            color: white;
+            margin: 0 10px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .footer-links a:hover {
+            color: var(--accent-color);
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            nav {
+                margin-top: 15px;
+            }
+            
+            nav ul {
+                justify-content: center;
+            }
+            
+            .tools {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .footer-content {
+                flex-direction: column;
+            }
+            
+            .footer-links {
+                margin-top: 10px;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-container">
+                    <img src="bgo_logo_transparent.svg" alt="BGO Montage & Logistik Logo" class="logo">
+                    <div class="logo-text">
+                        <h1>Interne Tools</h1>
+                        <p>Disposition & Logistik</p>
+                    </div>
+                </div>
+                <nav>
+                    <ul>
+                        <li><a href="https://github.com/BMLZellEr/bgo_montage_und_logistik" target="_blank">GitHub Repository</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="intro">
+                <h2>Werkzeuge für die tägliche Arbeit</h2>
+                <p>Sammlung von Tools und Dokumentationen für Kollegen der Disposition bei BGO Montage & Logistik</p>
+            </div>
+            <div class="tools">
+                <div class="tool-card">
+                    <div class="tool-icon">
+                        <i>🗺️</i>
+                    </div>
+                    <div class="tool-content">
+                        <h3>BML Austria Interaktive Dispo Karte</h3>
+                        <p>Lieferzonen für optimierte Disposition in Österreich</p>
+                        <a href="austria_zone_cargo_map/index.html" class="btn">Karte öffnen</a>
+                    </div>
+                </div>
+                <div class="tool-card">
+                    <div class="tool-icon">
+                        <i>📝</i>
+                    </div>
+                    <div class="tool-content">
+                        <h3>Dokumentationen</h3>
+                        <p>Arbeitsabläufe, Prozesse und Anleitungen</p>
+                        <a href="documentation.html" class="btn">Dokumente ansehen</a>
+                    </div>
+                </div>
+                <div class="tool-card">
+                    <div class="tool-icon">
+                        <i>📊</i>
+                    </div>
+                    <div class="tool-content">
+                        <h3>Excel-Makros</h3>
+                        <p>Tools für effiziente Datenverarbeitung</p>
+                        <a href="https://github.com/BMLZellEr/bgo_montage_und_logistik/tree/main/excel-makros" target="_blank" class="btn">Zu den Makros</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <p>Internes Repository für BGO Montage & Logistik Mitarbeiter</p>
+                </div>
+                <div class="footer-links">
+                    <a href="https://github.com/BMLZellEr" target="_blank">GitHub-Profil</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
