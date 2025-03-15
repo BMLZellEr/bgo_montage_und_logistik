@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGO Montage & Logistik - Dokumentation</title>
+    <style>
+        :root {
+            --primary-color: #3B71A9;
+            --secondary-color: #1E3C5A;
+            --accent-color: #f8f9fa;
+            --text-color: #333;
+            --light-bg: #f8f9fa;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: #fff;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        header {
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            padding: 15px 0;
+        }
+        
+        .logo {
+            height: 60px;
+        }
+        
+        nav {
+            padding: 10px 0;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            justify-content: flex-end;
+        }
+        
+        nav ul li {
+            margin-left: 25px;
+        }
+        
+        nav ul li a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        nav ul li a:hover {
+            color: var(--primary-color);
+        }
+        
+        .section {
+            padding: 120px 0 80px;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .section-title h2 {
+            font-size: 2rem;
+            color: var(--secondary-color);
+            position: relative;
+            display: inline-block;
+            padding-bottom: 10px;
+        }
+        
+        .section-title h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 3px;
+            background-color: var(--primary-color);
+        }
+        
+        .docs-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .doc-card {
+            background-color: var(--light-bg);
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .doc-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .doc-icon {
+            height: 150px;
+            background-color: var(--secondary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+        }
+        
+        .doc-content {
+            padding: 20px;
+        }
+        
+        .doc-content h3 {
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+        
+        .btn:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-3px);
+        }
+        
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .back-btn:hover {
+            color: var(--primary-color);
+        }
+        
+        footer {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 30px 0;
+            text-align: center;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .footer-links, .footer-social {
+            margin: 20px 0;
+        }
+        
+        .footer-links a, .footer-social a {
+            color: white;
+            margin: 0 10px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .footer-links a:hover, .footer-social a:hover {
+            color: var(--accent-color);
+        }
+        
+        .footer-bottom {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        @media (max-width: 768px) {
+            .footer-content {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo-container">
+                <img src="bgo_logo_transparent.png" alt="BGO Montage & Logistik Logo" class="logo">
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Startseite</a></li>
+                    <li><a href="austria_zone_cargo_map/index.html">Karte</a></li>
+                    <li><a href="https://github.com/BMLZellEr/bgo_montage_und_logistik" target="_blank">GitHub</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="section">
+        <div class="container">
+            <a href="index.html" class="back-btn">← Zurück zur Startseite</a>
+            <div class="section-title">
+                <h2>Dokumentationen</h2>
+            </div>
+            <div class="docs-container">
+                <div class="doc-card">
+                    <div class="doc-icon">
+                        <i>📋</i>
+                    </div>
+                    <div class="doc-content">
+                        <h3>Dispositionshandbuch</h3>
+                        <p>Komplette Anleitung für die tägliche Arbeit in der Disposition, einschließlich Prozessen, Abläufen und Best Practices.</p>
+                        <a href="https://github.com/BMLZellEr/bgo_montage_und_logistik/blob/main/documentation/disposition_handbuch.md" target="_blank" class="btn">Dokument öffnen</a>
+                    </div>
+                </div>
+                <div class="doc-card">
+                    <div class="doc-icon">
+                        <i>🗺️</i>
+                    </div>
+                    <div class="doc-content">
+                        <h3>Lieferzonendokumentation</h3>
+                        <p>Detaillierte Informationen zu den Lieferzonen, deren Einteilung und den entsprechenden Frachtsätzen.</p>
+                        <a href="https://github.com/BMLZellEr/bgo_montage_und_logistik/blob/main/documentation/lieferzonen.md" target="_blank" class="btn">Dokument öffnen</a>
+                    </div>
+                </div>
+                <div class="doc-card">
+                    <div class="doc-icon">
+                        <i>🔧</i>
+                    </div>
+                    <div class="doc-content">
+                        <h3>Excel-Makro Anleitung</h3>
+                        <p>Anleitung zur Verwendung der verschiedenen Excel-Makros, die im Repository enthalten sind.</p>
+                        <a href="https://github.com/BMLZellEr/bgo_montage_und_logistik/blob/main/documentation/excel_makro_anleitung.md" target="_blank" class="btn">Dokument öffnen</a>
+                    </div>
+                </div>
+                <div class="doc-card">
+                    <div class="doc-icon">
+                        <i>📊</i>
+                    </div>
+                    <div class="doc-content">
+                        <h3>Datenbankdokumentation</h3>
+                        <p>Dokumentation der Datenbankstruktur, die für die Verwaltung der Lieferzonen und Frachtsätze verwendet wird.</p>
+                        <a href="https://github.com/BMLZellEr/bgo_montage_und_logistik/blob/main/documentation/datenbank_info.md" target="_blank" class="btn">Dokument öffnen</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="bgo_logo_transparent.png" alt="BGO Montage & Logistik Logo" style="height: 50px;">
+                </div>
+                <div class="footer-links">
+                    <a href="index.html">Startseite</a>
+                    <a href="austria_zone_cargo_map/index.html">Karte</a>
+                    <a href="https://github.com/BMLZellEr/bgo_montage_und_logistik" target="_blank">GitHub</a>
+                </div>
+                <div class="footer-social">
+                    <a href="https://github.com/BMLZellEr" target="_blank">GitHub</a>
+                    <a href="mailto:kontakt@bgo-montage.de">E-Mail</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 BGO Montage & Logistik GmbH. Alle Rechte vorbehalten.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
