@@ -1,5 +1,3 @@
-# 🏢 BGO Mitschrift Erik Zellhofer 🏢
-
 ## 🌍 Gebiete Erik (Hersteller NOS 💚) 
 - **⛰️ Voradelberg - [VBG] - (SC Dornbirn) - {Partner=ULGB} +  Deutschland Süden (PLZ 8XXXX) [DE] + Liechtenstein [FL] + Schweiz [CH]**
     - **🚀 Untertouren** macht **[⛰️ ULGB Voradelberg ist Anders](https://github.com/Kingslayer9988/bgo_holding/blob/main/documentation/Profi-Tour.md#%EF%B8%8F-vorarlberg-ist-anders)**
