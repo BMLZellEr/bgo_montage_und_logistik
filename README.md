@@ -2,11 +2,9 @@
 
 [![BGO Montage & Logistik](https://github.com/BMLZellEr/bgo_montage_und_logistik/raw/main/bgo-montage-logistik-logo.jpg)](https://bmlzeller.github.io/bgo_montage_und_logistik/)
 
-[![Website](https://img.shields.io/badge/Website-Visit%20Now-blue?style=for-the-badge&logo=github)](https://bmlzeller.github.io/bgo_montage_und_logistik/)
-
 ## 🚀 Schnellzugriff / Quick Access
 
-**➡️ [Zur interaktiven Website](https://bmlzeller.github.io/bgo_montage_und_logistik/)**
+[![Website](https://img.shields.io/badge/Website-Visit%20Now-blue?style=for-the-badge&logo=github)](https://bmlzeller.github.io/bgo_montage_und_logistik/)
 
 ## Werkzeuge und Ressourcen
 
