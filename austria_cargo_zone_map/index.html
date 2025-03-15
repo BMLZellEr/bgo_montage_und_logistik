@@ -252,6 +252,29 @@ function determineZone(feature) {
         }
         return '#CCCCCC'; // Default gray for unknown zones
     }
+    
+    // Get the color for a feature based on its zone
+    function getZoneColor(feature) {
+            // Check cache first
+            const featureId = feature.id || JSON.stringify(feature.properties);
+            if (zoneCache.has(featureId)) {
+                const cachedZone = zoneCache.get(featureId);
+                return zoneInfo.zones[cachedZone]?.color || '#CCCCCC';
+            }
+            
+            // Determine zone
+            const zone = determineZone(feature);
+            
+            // Cache the result
+            if (zone) {
+                zoneCache.set(featureId, zone);
+            }
+            
+            if (zone && zoneInfo.zones[zone]) {
+                return zoneInfo.zones[zone].color;
+            }
+            return '#CCCCCC'; // Default gray for unknown zones
+        }
 
     function popUp(feature, layer) {
         const out = [];
@@ -508,27 +531,6 @@ function determineZone(feature) {
                 };
             }
         });
-        function getZoneColor(feature) {
-            // Check cache first
-            const featureId = feature.id || JSON.stringify(feature.properties);
-            if (zoneCache.has(featureId)) {
-                const cachedZone = zoneCache.get(featureId);
-                return zoneInfo.zones[cachedZone]?.color || '#CCCCCC';
-            }
-
-            // Determine zone
-            const zone = determineZone(feature);
-
-            // Cache the result
-            if (zone) {
-                zoneCache.set(featureId, zone);
-            }
-
-            if (zone && zoneInfo.zones[zone]) {
-                return zoneInfo.zones[zone].color;
-            }
-            return '#CCCCCC'; // Default gray for unknown zones
-        }
         
         const overlayLayers = {
             "Liefergebiete": liefergebieteLayer,
