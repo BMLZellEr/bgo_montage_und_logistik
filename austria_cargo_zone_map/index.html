@@ -260,8 +260,15 @@ function determineZone(feature) {
             const zone = determineZone(feature);
             if (zone) {
                 const gebiet = zoneInfo.zones[zone]?.gebiet;
-                out.push("<b>Zone:</b> " + zone);
-                out.push("<b>Liefergebiet:</b> " + zoneInfo.gebiet[gebiet].name);
+                const zoneColor = zoneInfo.zones[zone]?.color || '#CCCCCC';
+                const gebietColor = zoneInfo.gebiet[gebiet]?.color || '#CCCCCC';
+
+                // Add zone with color indicator
+                out.push(`<b>Zone:</b> <span style="display:inline-block; width:12px; height:12px; background-color:${zoneColor}; border:1px solid #000; margin-right:4px;"></span>${zone} (${zoneInfo.zones[zone].name})`);
+
+                // Add delivery area with color indicator
+                out.push(`<b>Liefergebiet:</b> <span style="display:inline-block; width:12px; height:12px; background-color:${gebietColor}; border:1px solid #000; margin-right:4px;"></span>${gebiet} (${zoneInfo.gebiet[gebiet].name})`);
+                // Add Region
                 out.push("<b>Region:</b> " + zoneInfo.zones[zone].name);
             }
             
@@ -328,25 +335,43 @@ function determineZone(feature) {
     }
     
     // Add a legend to the map focusing on Delivery Areas (Ausliefergebiete)
-    function addLegend() {
+    function addLegend(type = 'gebiet') {
+        // Remove existing legend if present
+        const existingLegend = document.querySelector('.info.legend');
+        if (existingLegend) {
+            existingLegend.parentNode.remove();
+        }
+
         const legend = L.control({position: 'bottomright'});
-        
+
         legend.onAdd = function(map) {
             const div = L.DomUtil.create('div', 'info legend');
-            let labels = ['<strong>Liefergebiete</strong>'];
-            
-            // Add legend items for each gebiet
-            for(const [gebietNum, info] of Object.entries(zoneInfo.gebiet)) {
-                labels.push(
-                    '<i style="background:' + info.color + '"></i> ' +
-                    info.name
-                );
+            let labels = [];
+
+            if (type === 'zone') {
+                // Legend for zones
+                labels.push('<strong>Zonen</strong>');
+                for(const [zoneKey, zoneData] of Object.entries(zoneInfo.zones)) {
+                    labels.push(
+                        '<i style="background:' + zoneData.color + '"></i> ' +
+                        'Zone ' + zoneKey + ': ' + zoneData.name
+                    );
+                }
+            } else {
+                // Legend for gebiete (delivery areas)
+                labels.push('<strong>Liefergebiete</strong>');
+                for(const [gebietNum, info] of Object.entries(zoneInfo.gebiet)) {
+                    labels.push(
+                        '<i style="background:' + info.color + '"></i> ' +
+                        info.name
+                    );
+                }
             }
-            
+
             div.innerHTML = labels.join('<br>');
             return div;
         };
-        
+
         legend.addTo(map);
     }
 
@@ -389,7 +414,38 @@ function determineZone(feature) {
         });
     }
 
+    map.on('overlayadd', function(e) {
+        if (e.name === "Liefergebiete") {
+            addLegend('gebiet');
+        } else if (e.name === "Zonen") {
+            addLegend('zone');
+        }
+    });
+
     function initializeApp() {
+        const zonenLayer = new L.GeoJSON.AJAX("data/vorwahlen+plz.json",
+            {
+                onEachFeature: onEachFeature,
+                style: function(feature) {
+                return {
+                    'fillColor': getZoneColor(feature),
+                    'weight': 2,
+                    'opacity': 1,
+                    'color': '#000000',
+                    'fillOpacity': 0.7,
+                    'dashArray': ''
+                };
+            }
+        }
+        );
+        zonenLayer.getAttribution = function () {
+            return 'Bgo Montage Holding GmbH – www.bgo-montage.com | NOS Zonen';
+        };
+        zonenLayer.addEventListener('data:loaded', function () {
+            console.log("Zone layer data loaded...");
+        });
+
+        
         const liefergebieteLayer = new L.GeoJSON.AJAX("data/vorwahlen+plz.json",
             {
                 onEachFeature: onEachFeature,
@@ -452,9 +508,31 @@ function determineZone(feature) {
                 };
             }
         });
-    
+        function getZoneColor(feature) {
+            // Check cache first
+            const featureId = feature.id || JSON.stringify(feature.properties);
+            if (zoneCache.has(featureId)) {
+                const cachedZone = zoneCache.get(featureId);
+                return zoneInfo.zones[cachedZone]?.color || '#CCCCCC';
+            }
+
+            // Determine zone
+            const zone = determineZone(feature);
+
+            // Cache the result
+            if (zone) {
+                zoneCache.set(featureId, zone);
+            }
+
+            if (zone && zoneInfo.zones[zone]) {
+                return zoneInfo.zones[zone].color;
+            }
+            return '#CCCCCC'; // Default gray for unknown zones
+        }
+        
         const overlayLayers = {
             "Liefergebiete": liefergebieteLayer,
+            "Zonen": zonenLayer,
             "Postleitzahlen": plzLayer,
             "Bezirke": bezirkLayer,
             "Wiener Bezirke": wienBezirkLayer
