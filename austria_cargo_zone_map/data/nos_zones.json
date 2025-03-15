@@ -1,15 +1,15 @@
 {
   "zones": {
-    "A": { "gebiet": 1, "color": "#3366CC", "name": "Wien und Umgebung" },
-    "B": { "gebiet": 1, "color": "#3366CC", "name": "Niederösterreich (Nordost)" },
-    "C": { "gebiet": 1, "color": "#3366CC", "name": "Niederösterreich (Nordwest)" },
-    "E": { "gebiet": 1, "color": "#3366CC", "name": "Niederösterreich (Süd), Teile von Salzburg" },
-    "D": { "gebiet": 2, "color": "#DC3912", "name": "Oberösterreich (Süd)" },
-    "H": { "gebiet": 2, "color": "#DC3912", "name": "Oberösterreich (Nord)" },
-    "F": { "gebiet": 3, "color": "#FF9900", "name": "Steiermark" },
-    "G": { "gebiet": 4, "color": "#109618", "name": "Kärnten" },
-    "I": { "gebiet": 5, "color": "#990099", "name": "Tirol" },
-    "J": { "gebiet": 6, "color": "#0099C6", "name": "Vorarlberg" }
+    "A": { "gebiet": 1, "color": "#4285F4", "name": "Wien und Umgebung" },
+    "B": { "gebiet": 1, "color": "#5E97F6", "name": "Niederösterreich (Nordost)" },
+    "C": { "gebiet": 1, "color": "#9FC4FD", "name": "Niederösterreich (Nordwest)" },
+    "E": { "gebiet": 1, "color": "#C2D7FC", "name": "Niederösterreich (Süd), Teile von Salzburg" },
+    "D": { "gebiet": 2, "color": "#EA4335", "name": "Oberösterreich (Süd)" },
+    "H": { "gebiet": 2, "color": "#F07B72", "name": "Oberösterreich (Nord)" },
+    "F": { "gebiet": 3, "color": "#FBBC04", "name": "Steiermark" },
+    "G": { "gebiet": 4, "color": "#34A853", "name": "Kärnten" },
+    "I": { "gebiet": 5, "color": "#A142F4", "name": "Tirol" },
+    "J": { "gebiet": 6, "color": "#24C1E0", "name": "Vorarlberg" }
   },
   "gebiet": {
     "1": { "name": "NOS-Ausliefergebiet 1 (Zonen A, B, C, E)", "color": "#3366CC" },
