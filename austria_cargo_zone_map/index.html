@@ -82,6 +82,8 @@
 
 <script>
     // Data structures to hold zone information
+    let zonenLayer;
+    let liefergebieteLayer;
     let plzToZoneMap = {};
     let zoneInfo = {
         zones: {},
@@ -425,7 +427,22 @@ function determineZone(feature) {
     // Reset highlight on mouseout
     function resetHighlight(e) {
         const layer = e.target;
-        layer.setStyle(styleFeature(layer.feature));
+        
+        // Check which layer this feature belongs to
+        if (layer._map && layer._map.hasLayer(zonenLayer) && zonenLayer.hasLayer(layer)) {
+            // This is part of the Zonen layer
+            layer.setStyle({
+                'fillColor': getZoneColor(layer.feature),
+                'weight': 2,
+                'opacity': 1,
+                'color': '#000000',
+                'fillOpacity': 0.7,
+                'dashArray': ''
+            });
+        } else {
+            // Default to Liefergebiete style
+            layer.setStyle(styleFeature(layer.feature));
+        }
     }
     
     // Set up interactions for each feature
@@ -563,9 +580,13 @@ function determineZone(feature) {
             maxY = -Infinity;
             console.log("Search:", val);
             const lowCaseVals = val.toLowerCase().split(/[\s,;+]+/);
-    
+                
+            // Determine which layer is currently active for search
+            const useZoneLayer = map.hasLayer(zonenLayer);
+            const activeLayer = useZoneLayer ? zonenLayer : liefergebieteLayer;
+                
             const promises = [];
-            liefergebieteLayer.eachLayer(function (layer) {
+            activeLayer.eachLayer(function (layer) {
                 promises.push(new Promise(function(resolve) {
                     const zone = determineZone(layer.feature);
                     const gebiet = zone ? zoneInfo.zones[zone]?.gebiet : null;
@@ -621,11 +642,18 @@ function determineZone(feature) {
                             }
                         }
                     });
-    
+                
                     if (show) {
-                        // Highlight feature
-                        const gebietNumber = gebiet ? gebiet : 0;
-                        const color = gebietNumber && zoneInfo.gebiet[gebietNumber] ? zoneInfo.gebiet[gebietNumber].color : '#CCCCCC';
+                        // Highlight feature based on active layer
+                        let color;
+                        if (useZoneLayer) {
+                            // Use zone color
+                            color = zone && zoneInfo.zones[zone] ? zoneInfo.zones[zone].color : '#CCCCCC';
+                        } else {
+                            // Use gebiet color
+                            const gebietNumber = gebiet ? gebiet : 0;
+                            color = gebietNumber && zoneInfo.gebiet[gebietNumber] ? zoneInfo.gebiet[gebietNumber].color : '#CCCCCC';
+                        }
                         
                         layer.setStyle({
                             'fillColor': color,
@@ -633,7 +661,7 @@ function determineZone(feature) {
                             'weight': 3,
                             'color': '#000'
                         });
-    
+                    
                         // Update bounds
                         if (layer.feature.hasOwnProperty('featureBounds')) {
                             if (layer.feature.featureBounds['minX'] < minX) minX = layer.feature.featureBounds['minX'];
@@ -652,7 +680,7 @@ function determineZone(feature) {
                     resolve();
                 }));
             });
-    
+        
             // Wait for all promises to complete, then fit bounds if necessary
             Promise.all(promises)
                 .then(() => {
