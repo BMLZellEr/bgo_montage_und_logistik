@@ -174,29 +174,6 @@ Danke im Voraus.
 | **10** | **Werk** |
 | **23** | **Händler** |
 
-## Personal Opinion and things that i saw:
-- First of all my job should be done by a woman because 4/8 h I lsten to gossip about other partners. THIS IS VALID FOR WY AS WELL
-    - its a goddamn free for all ☠️☠️☠️ (ask people what this fat guy came screaming (FNOS) about?)
-  
-- NOS-People (Logistics-Office) are way nicer and more accepting of me (surley still enogh weirdness)
-
-- People their seem not lazy but rather overworked = (Logistics-Office)
-  
-- Will actually listen to what i have to say if Helmuth/Alex approves.
-
-- People dont think they are wizards there because they can press buttons. (ps: I saw the fastest typing lady in history of my life)
-
-- Good and Simple solutions got found in 2 days. There will be no Papers in WY and if I can take enogh Cargo-Zones Helmuth can go enjoy life
-
-- 💡 Helmuth => This Guy is quite litterally the backbone of this whole company it seems.
-    - 💡 Super smart and very humble and good humor. No bullshit type of guy.
-    - 💡 Defenitly the highest useful Disatcher++ that I have ever seen working.
-    - 💡 Someone that cant do half of them with 2x💵 and tells them they are doing things wrong is crazy.
-    - 💡 He will litterally do 3 or more Jobs just to see someone he wants to help happy.
-    - 💡 I think me and him can do great work together - What he can I cant and I can try make his tech problems easier.
-    - 💡 still ~10y till pension without him it cant work with him it can - Everybody underestimates what he does drastically
-    - 💡 The 2nd Guy i meet in this Company that is not entiteld for some random ass reason that has nothing to do with real life.
-
 ## Vorproduktion
 - Im Regel bei **📅 Terminverschiebungen durch kunden wird Prod.**
 - trotzdem laut altem Datum durchgeführt & **Auf WAB verladen.** (Genug Container vorhanden)
