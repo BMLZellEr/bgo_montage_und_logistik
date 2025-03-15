@@ -1,0 +1,197 @@
+/**
+ * zone_integration.js
+ * This script integrates zone and gebiet information into the existing visualization
+ */
+
+// Global variables to store our data
+let plzToZoneMap = null;
+let zoneData = null;
+let gebietData = null;
+
+// Load the zone data files
+function loadZoneData() {
+  return Promise.all([
+    fetch('data/nos_plz_to_zone.json').then(response => response.json()),
+    fetch('data/nos_zones.json').then(response => response.json())
+  ]).then(([plzToZoneData, zonesData]) => {
+    plzToZoneMap = plzToZoneData;
+    zoneData = zonesData.zones;
+    gebietData = zonesData.gebiet;
+    console.log('Zone data loaded successfully');
+    return true;
+  }).catch(error => {
+    console.error('Error loading zone data:', error);
+    return false;
+  });
+}
+
+// Apply zone styling to a feature
+function getZoneStyle(feature) {
+  if (feature.properties && feature.properties.plz) {
+    // Get the first PLZ code from the feature
+    const plzKeys = Object.keys(feature.properties.plz);
+    if (plzKeys.length > 0) {
+      const plz = plzKeys[0];
+      
+      // Look up the zone for this PLZ
+      if (plzToZoneMap[plz]) {
+        const zone = plzToZoneMap[plz];
+        return {
+          fillColor: zoneData[zone].color,
+          weight: 1,
+          opacity: 1,
+          color: 'white',
+          fillOpacity: 0.7
+        };
+      }
+    }
+  }
+  
+  // Default style if no zone data
+  return {
+    fillColor: '#cccccc',
+    weight: 1,
+    opacity: 1,
+    color: 'white',
+    fillOpacity: 0.3
+  };
+}
+
+// Apply gebiet styling to a feature
+function getGebietStyle(feature) {
+  if (feature.properties && feature.properties.plz) {
+    // Get the first PLZ code from the feature
+    const plzKeys = Object.keys(feature.properties.plz);
+    if (plzKeys.length > 0) {
+      const plz = plzKeys[0];
+      
+      // Look up the zone for this PLZ
+      if (plzToZoneMap[plz]) {
+        const zone = plzToZoneMap[plz];
+        const gebietId = zoneData[zone].gebiet;
+        return {
+          fillColor: gebietData[gebietId].color,
+          weight: 1,
+          opacity: 1,
+          color: 'white',
+          fillOpacity: 0.7
+        };
+      }
+    }
+  }
+  
+  // Default style if no zone data
+  return {
+    fillColor: '#cccccc',
+    weight: 1,
+    opacity: 1,
+    color: 'white',
+    fillOpacity: 0.3
+  };
+}
+
+// Create enhanced popup content
+function createPopupContent(feature) {
+  let content = [];
+  
+  if (feature.properties) {
+    // Add basic properties
+    if (feature.properties.name) {
+      content.push(`<b>${feature.properties.name}</b>`);
+    }
+    
+    // Add PLZ information
+    if (feature.properties.plz) {
+      const plzKeys = Object.keys(feature.properties.plz);
+      if (plzKeys.length > 0) {
+        content.push(`<b>PLZ:</b> ${plzKeys.join(', ')}`);
+        
+        // Add zone information
+        const plz = plzKeys[0];
+        if (plzToZoneMap[plz]) {
+          const zone = plzToZoneMap[plz];
+          const gebietId = zoneData[zone].gebiet;
+          
+          content.push(`<b>Zone:</b> ${zone} - ${zoneData[zone].name}`);
+          content.push(`<b>Liefergebiet:</b> ${gebietData[gebietId].name}`);
+        }
+      }
+    }
+    
+    // Add vorwahl information
+    if (feature.properties.vorwahl) {
+      const vorwahlKeys = Object.keys(feature.properties.vorwahl);
+      if (vorwahlKeys.length > 0) {
+        content.push(`<b>Vorwahl:</b> ${vorwahlKeys.join(', ')}`);
+      }
+    }
+  }
+  
+  return content.join('<br>');
+}
+
+// Create zone legend
+function createZoneLegend() {
+  const legendContainer = document.getElementById('map-legend');
+  if (!legendContainer) return;
+  
+  legendContainer.innerHTML = "";
+  
+  // Add title
+  const title = document.createElement('h5');
+  title.textContent = "Zonen";
+  legendContainer.appendChild(title);
+  
+  // Create legend items for each zone
+  Object.keys(zoneData).sort().forEach(zone => {
+    const data = zoneData[zone];
+    
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    
+    const colorBox = document.createElement('div');
+    colorBox.className = 'legend-color';
+    colorBox.style.backgroundColor = data.color;
+    
+    const label = document.createElement('div');
+    label.className = 'legend-label';
+    label.textContent = `Zone ${zone}: ${data.name}`;
+    
+    item.appendChild(colorBox);
+    item.appendChild(label);
+    legendContainer.appendChild(item);
+  });
+}
+
+// Create gebiet legend
+function createGebietLegend() {
+  const legendContainer = document.getElementById('map-legend');
+  if (!legendContainer) return;
+  
+  legendContainer.innerHTML = "";
+  
+  // Add title
+  const title = document.createElement('h5');
+  title.textContent = "Liefergebiete NOS";
+  legendContainer.appendChild(title);
+  
+  // Create legend items for each gebiet
+  Object.keys(gebietData).sort().forEach(gebietId => {
+    const data = gebietData[gebietId];
+    
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    
+    const colorBox = document.createElement('div');
+    colorBox.className = 'legend-color';
+    colorBox.style.backgroundColor = data.color;
+    
+    const label = document.createElement('div');
+    label.className = 'legend-label';
+    label.textContent = data.name;
+    
+    item.appendChild(colorBox);
+    item.appendChild(label);
+    legendContainer.appendChild(item);
+  });
+}

@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="de-AT">
+<head>
+    <title>Liefergebietszuordnung für Dispatcher</title>
+
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="leaflet/leaflet.css">
+    <script src="leaflet/leaflet.js"></script>
+    <script src="leaflet/leaflet.ajax.min.js"></script>
+    <script src="leaflet/leaflet-hash.js"></script>
+    <script src="leaflet/leaflet.CenterCross-v0.0.8.js"></script>
+
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            width: 100vw;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .loader {
+            border: 16px solid #f3f3f3;
+            border-top: 16px solid #3498db;
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            animation: spin 2s linear infinite;
+            z-index: 10;
+            position: absolute;
+            top: calc(50% - 60px);
+            left: calc(50% - 60px);
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .info {
+            padding: 8px;
+            font: 14px/16px Arial, Helvetica, sans-serif;
+            background: white;
+            background: rgba(255,255,255,0.9);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+        
+        .legend {
+            text-align: left;
+            line-height: 24px;
+            color: #555;
+        }
+        
+        .legend i {
+            width: 20px;
+            height: 20px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.85;
+            border: 1px solid #333;
+        }
+        
+        #searchInput {
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 200px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div id="loader" class="loader"></div>
+<div id='map'></div>
+
+<script>
+    // Data structures to hold zone information
+    let plzToZoneMap = {};
+    let zoneInfo = {
+        zones: {},
+        gebiet: {}
+    };
+    
+    // Map setup
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.de/tiles/osmde/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    });
+
+    const basemap = L.tileLayer('https://maps{s}.wien.gv.at/basemap/geolandbasemap/{type}/google3857/{z}/{y}/{x}.{format}', {
+        maxZoom: 18,
+        attribution: 'Datenquelle: <a href="https://www.basemap.at">basemap.at</a>',
+        subdomains: ["", "1", "2", "3", "4"],
+        type: 'normal',
+        format: 'png',
+        bounds: [[46.35877, 8.782379], [49.037872, 17.189532]]
+    });
+
+    const basemapOrtho = L.tileLayer('https://maps{s}.wien.gv.at/basemap/{type}/normal/google3857/{z}/{y}/{x}.{format}', {
+        maxZoom: 18,
+        attribution: 'Datenquelle: <a href="https://www.basemap.at">basemap.at</a>',
+        subdomains: ["", "1", "2", "3", "4"],
+        type: 'bmaporthofoto30cm',
+        format: 'jpeg',
+        bounds: [[46.35877, 8.782379], [49.037872, 17.189532]]
+    });
+
+    const map = L.map('map', {
+        center: [47.5, 13.4],
+        zoom: 8,
+        layers: [osm]
+    });
+    map.doubleClickZoom.disable();
+
+    const mapLayers = {
+        "Open Street Map": osm,
+        "Basemap.at": basemap,
+        "Basemap.at Orthofoto": basemapOrtho,
+    };
+
+    const hash = new L.Hash(map);
+    
+    // Function to load external mapping
+    function loadMappingData() {
+        // Try to load nos_plz_to_zone.json
+        fetch('data/nos_plz_to_zone.json')
+            .then(response => response.json())
+            .then(data => {
+                plzToZoneMap = data;
+                console.log("PLZ to Zone mapping loaded from file");
+                initializeApp();
+            })
+            .catch(error => {
+                console.error("Could not load PLZ to Zone mapping:", error);
+                document.getElementById('loader').style.display = 'none';
+                alert("Error loading postal code data. Please check the console for details.");
+            });
+
+        // Try to load nos_zones.json
+        fetch('data/nos_zones.json')
+            .then(response => response.json())
+            .then(data => {
+                zoneInfo = data;
+                console.log("Zone info loaded from file");
+            })
+            .catch(error => {
+                console.error("Could not load Zone info:", error);
+            });
+    }
+
+function determineZone(feature) {
+    if (!feature || !feature.properties) return null;
+    
+    // STEP 1: First try direct postal code matching (original approach)
+    if (feature.properties.plz) {
+        let plzList = [];
+        if (typeof feature.properties.plz === 'object') {
+            plzList = Object.keys(feature.properties.plz);
+        } else {
+            plzList = [feature.properties.plz.toString()];
+        }
+        
+        for (const plz of plzList) {
+            if (plzToZoneMap[plz]) {
+                return plzToZoneMap[plz];
+            }
+        }
+    }
+    
+    // STEP 2: If no PLZ match, try using GemKZ (municipality code)
+    if (feature.properties.iso) {
+        let gemkz = null;
+        if (typeof feature.properties.iso === 'object') {
+            // Use the first key in the iso object
+            gemkz = Object.keys(feature.properties.iso)[0];
+        } else {
+            gemkz = feature.properties.iso.toString();
+        }
+        
+        if (gemkz) {
+            // Apply the GemKZ logic you specified
+            if (gemkz.startsWith('2')) return 'G';
+            if (gemkz.startsWith('4')) return 'D';
+            if (gemkz.startsWith('5')) return 'H';
+            if (gemkz.startsWith('6')) return 'F';
+            if (gemkz.startsWith('7')) return 'I';
+            if (gemkz.startsWith('8')) return 'J';
+        }
+    }
+    
+    // STEP 3: If all else fails, try vorwahl (area code)
+    if (feature.properties.vorwahl) {
+        let vorwahlList = [];
+        if (typeof feature.properties.vorwahl === 'object') {
+            vorwahlList = Object.keys(feature.properties.vorwahl);
+        } else {
+            vorwahlList = [feature.properties.vorwahl.toString()];
+        }
+        
+        for (const vorwahl of vorwahlList) {
+            if (vorwahl.startsWith('1')) return 'A';
+            if (vorwahl.startsWith('2')) return 'A';
+            if (vorwahl.startsWith('3')) return 'B';
+            if (vorwahl.startsWith('4')) return 'D';
+            if (vorwahl.startsWith('5')) return 'H';
+            if (vorwahl.startsWith('6')) return 'G';
+            if (vorwahl.startsWith('7')) return 'A';
+            if (vorwahl.startsWith('8')) return 'F';
+            if (vorwahl.startsWith('9')) return 'G';
+        }
+    }
+    
+    // Default fallback
+    return null;
+}
+    // Cache for zone determinations to improve performance
+    const zoneCache = new Map();
+    
+    // Get the color for a feature based on its gebiet (delivery area)
+    function getFeatureColor(feature) {
+        // Check cache first
+        const featureId = feature.id || JSON.stringify(feature.properties);
+        if (zoneCache.has(featureId)) {
+            const cachedZone = zoneCache.get(featureId);
+            const gebiet = zoneInfo.zones[cachedZone]?.gebiet;
+            return zoneInfo.gebiet[gebiet]?.color || '#CCCCCC';
+        }
+        
+        // Determine zone
+        const zone = determineZone(feature);
+        
+        // Cache the result
+        if (zone) {
+            zoneCache.set(featureId, zone);
+        }
+        
+        if (zone && zoneInfo.zones[zone]) {
+            const gebiet = zoneInfo.zones[zone].gebiet;
+            return zoneInfo.gebiet[gebiet].color;
+        }
+        return '#CCCCCC'; // Default gray for unknown zones
+    }
+
+    function popUp(feature, layer) {
+        const out = [];
+        if (feature.hasOwnProperty('properties')) {
+            // Add delivery zone info
+            const zone = determineZone(feature);
+            if (zone) {
+                const gebiet = zoneInfo.zones[zone]?.gebiet;
+                out.push("<b>Zone:</b> " + zone);
+                out.push("<b>Liefergebiet:</b> " + zoneInfo.gebiet[gebiet].name);
+                out.push("<b>Region:</b> " + zoneInfo.zones[zone].name);
+            }
+            
+            // Add other feature properties
+            for (const key in feature.properties) {
+                // Skip certain technical properties
+                if (key === 'color' || key === 'color1' || key === 'plzcolor' || key === 'plzcolor1') continue;
+                
+                if (feature.properties.hasOwnProperty(key) && typeof feature.properties[key] == 'object' &&
+                    feature.properties[key] !== null
+                ) {
+                    let valStr = '';
+                    if (Object.keys(feature.properties[key]).length > 1) {
+                        valStr += '<ul>';
+                        for (const val in feature.properties[key]) {
+                            if (feature.properties[key].hasOwnProperty(val)) {
+                                valStr += '<li>';
+                                valStr += val + ': ' + feature.properties[key][val];
+                                valStr += '</li>';
+                            }
+                        }
+                        valStr += '</ul>';
+                    } else {
+                        for (const val in feature.properties[key]) {
+                            if (feature.properties[key].hasOwnProperty(val)) {
+                                valStr += val + ': ' + feature.properties[key][val];
+                            }
+                        }
+                    }
+                    if (key === 'iso') {
+                        out.push("<b>GemKZ:</b> " + valStr);
+                    } else if (key === 'plz') {
+                        out.push("<b>PLZ:</b> " + valStr);
+                    } else {
+                        out.push("<b>" + key + "</b>: " + valStr);
+                    }
+                } else {
+                    if (key === 'iso') {
+                        out.push("<b>GemKZ</b>: " + feature.properties[key]);
+                    } else if (key === 'plz') {
+                        out.push("<b>PLZ</b>: " + feature.properties[key]);
+                    } else {
+                        out.push("<b>" + key + "</b>: " + feature.properties[key]);
+                    }
+                }
+            }
+            layer.bindPopup(out.join("<br />"), {maxHeight: 300});
+        }
+
+        if (feature.hasOwnProperty('featureBounds')) {
+            if (feature['featureBounds']['minX'] < minX) {
+                minX = feature['featureBounds']['minX'];
+            }
+            if (feature['featureBounds']['maxX'] > maxX) {
+                maxX = feature['featureBounds']['maxX'];
+            }
+            if (feature['featureBounds']['minY'] < minY) {
+                minY = feature['featureBounds']['minY'];
+            }
+            if (feature['featureBounds']['maxY'] > maxY) {
+                maxY = feature['featureBounds']['maxY'];
+            }
+        }
+    }
+    
+    // Add a legend to the map focusing on Delivery Areas (Ausliefergebiete)
+    function addLegend() {
+        const legend = L.control({position: 'bottomright'});
+        
+        legend.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'info legend');
+            let labels = ['<strong>Liefergebiete</strong>'];
+            
+            // Add legend items for each gebiet
+            for(const [gebietNum, info] of Object.entries(zoneInfo.gebiet)) {
+                labels.push(
+                    '<i style="background:' + info.color + '"></i> ' +
+                    info.name
+                );
+            }
+            
+            div.innerHTML = labels.join('<br>');
+            return div;
+        };
+        
+        legend.addTo(map);
+    }
+
+    // Common style function for all layers
+    function styleFeature(feature) {
+        return {
+            'fillColor': getFeatureColor(feature),
+            'weight': 2,
+            'opacity': 1,
+            'color': '#000000',
+            'fillOpacity': 0.7,
+            'dashArray': ''
+        };
+    }
+    
+    // Highlight feature on mouseover
+    function highlightFeature(e) {
+        const layer = e.target;
+        layer.setStyle({
+            'weight': 3,
+            'color': '#FFFFFF',
+            'dashArray': '',
+            'fillOpacity': 0.8
+        });
+        layer.bringToFront();
+    }
+    
+    // Reset highlight on mouseout
+    function resetHighlight(e) {
+        const layer = e.target;
+        layer.setStyle(styleFeature(layer.feature));
+    }
+    
+    // Set up interactions for each feature
+    function onEachFeature(feature, layer) {
+        popUp(feature, layer);
+        layer.on({
+            mouseover: highlightFeature,
+            mouseout: resetHighlight
+        });
+    }
+
+    function initializeApp() {
+        const liefergebieteLayer = new L.GeoJSON.AJAX("data/vorwahlen+plz.json",
+            {
+                onEachFeature: onEachFeature,
+                style: styleFeature
+            }
+        );
+        liefergebieteLayer.getAttribution = function () {
+            return 'Bgo Montage Holding GmbH – www.bgo-montage.com | NOS Liefergebiete';
+        };
+        liefergebieteLayer.addEventListener('data:loaded', function () {
+            console.log("Data loaded...");
+            document.getElementById('loader').style.display = 'none';
+            // Add legend after data is loaded
+            addLegend();
+        });
+        liefergebieteLayer.addTo(map);
+    
+        const plzLayer = new L.GeoJSON.AJAX("data/vorwahlen+plz.json",
+            {
+                onEachFeature: popUp,
+                style: function (feature) {
+                    if (feature.properties['plzcolor'] === undefined) {
+                        return {
+                            'fillOpacity': 0,
+                            'color': 'rgba(0,0,0,0)'
+                        }
+                    } else {
+                        return {
+                            'color': feature.properties['plzcolor']
+                        }
+                    }
+                }
+            }
+        );
+        plzLayer.getAttribution = function () {
+            return 'Bgo Montage Holding GmbH – www.bgo-montage.com | NOS Liefergebiete';
+        };
+    
+        if (minX < Infinity && maxX > -Infinity && minY < Infinity && maxY > -Infinity) {
+            map.fitBounds([
+                [maxY, minX],
+                [minY, maxX]
+            ]);
+        }
+        
+        const bezirkLayer = new L.GeoJSON.AJAX("data/bezirke_995_geo.json", {
+            onEachFeature: onEachFeature,
+            style: styleFeature
+        });
+        
+        const wienBezirkLayer = new L.GeoJSON.AJAX("data/BezirksgrenzenWien.json", {
+            onEachFeature: onEachFeature,
+            style: function(feature) {
+                return {
+                    'fillColor': zoneInfo.zones['A']?.color || '#3366CC', // Vienna is always in Zone A
+                    'weight': 2,
+                    'opacity': 1,
+                    'color': '#000000',
+                    'fillOpacity': 0.7
+                };
+            }
+        });
+    
+        const overlayLayers = {
+            "Liefergebiete": liefergebieteLayer,
+            "Postleitzahlen": plzLayer,
+            "Bezirke": bezirkLayer,
+            "Wiener Bezirke": wienBezirkLayer
+        };
+    
+        const layerControl = L.control.layers(mapLayers, overlayLayers, {sortLayers: true}).addTo(map);
+    
+        function onLocationFound(e) {
+            const radius = e.accuracy / 2;
+            L.marker(e.latlng).addTo(map)
+                .bindPopup("You are within " + radius + " meters from this point").openPopup();
+            L.circle(e.latlng, radius).addTo(map);
+        }
+    
+        function onLocationError(e) {
+            alert(e.message);
+        }
+    
+        map.on('locationfound', onLocationFound);
+        map.on('locationerror', onLocationError);
+    
+        window.searchFunction = function(val) {
+            minX = Infinity;
+            minY = Infinity;
+            maxX = -Infinity;
+            maxY = -Infinity;
+            console.log("Search:", val);
+            const lowCaseVals = val.toLowerCase().split(/[\s,;+]+/);
+    
+            const promises = [];
+            liefergebieteLayer.eachLayer(function (layer) {
+                promises.push(new Promise(function(resolve) {
+                    const zone = determineZone(layer.feature);
+                    const gebiet = zone ? zoneInfo.zones[zone]?.gebiet : null;
+                    
+                    let show = false;
+                    
+                    // Search by zone, gebiet number, or region name
+                    lowCaseVals.forEach((term) => {
+                        // Match zone letter
+                        if (zone && zone.toLowerCase() === term) {
+                            show = true;
+                        }
+                        
+                        // Match gebiet number
+                        if (gebiet && term === gebiet.toString()) {
+                            show = true;
+                        }
+                        
+                        // Match region name
+                        if (zone && zoneInfo.zones[zone]?.name && 
+                            zoneInfo.zones[zone].name.toLowerCase().includes(term)) {
+                            show = true;
+                        }
+                        
+                        // Match gebiet name
+                        if (gebiet && zoneInfo.gebiet[gebiet]?.name &&
+                            zoneInfo.gebiet[gebiet].name.toLowerCase().includes(term)) {
+                            show = true;
+                        }
+                        
+                        // Match feature name
+                        if (layer.feature.properties.name && 
+                            layer.feature.properties.name.toLowerCase().includes(term)) {
+                            show = true;
+                        }
+                        
+                        // Match postal code or area code
+                        if (layer.feature.properties.vorwahl) {
+                            for (const vorwahl in layer.feature.properties.vorwahl) {
+                                if (vorwahl.toString().toLowerCase().includes(term)) {
+                                    show = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (layer.feature.properties.plz) {
+                            for (const plz in layer.feature.properties.plz) {
+                                if (plz.toString().toLowerCase().includes(term)) {
+                                    show = true;
+                                    break;
+                                }
+                            }
+                        }
+                    });
+    
+                    if (show) {
+                        // Highlight feature
+                        const gebietNumber = gebiet ? gebiet : 0;
+                        const color = gebietNumber && zoneInfo.gebiet[gebietNumber] ? zoneInfo.gebiet[gebietNumber].color : '#CCCCCC';
+                        
+                        layer.setStyle({
+                            'fillColor': color,
+                            'fillOpacity': 0.8,
+                            'weight': 3,
+                            'color': '#000'
+                        });
+    
+                        // Update bounds
+                        if (layer.feature.hasOwnProperty('featureBounds')) {
+                            if (layer.feature.featureBounds['minX'] < minX) minX = layer.feature.featureBounds['minX'];
+                            if (layer.feature.featureBounds['maxX'] > maxX) maxX = layer.feature.featureBounds['maxX'];
+                            if (layer.feature.featureBounds['minY'] < minY) minY = layer.feature.featureBounds['minY'];
+                            if (layer.feature.featureBounds['maxY'] > maxY) maxY = layer.feature.featureBounds['maxY'];
+                        }
+                    } else {
+                        // Dim unmatched features
+                        layer.setStyle({
+                            'fillOpacity': 0.2,
+                            'weight': 0.5,
+                            'color': '#999'
+                        });
+                    }
+                    resolve();
+                }));
+            });
+    
+            // Wait for all promises to complete, then fit bounds if necessary
+            Promise.all(promises)
+                .then(() => {
+                    if (minX < Infinity && maxX > -Infinity && minY < Infinity && maxY > -Infinity) {
+                        map.fitBounds([
+                            [maxY, minX],
+                            [minY, maxX]
+                        ]);
+                    }
+                })
+                .catch(error => console.log(`Error in executing ${error}`));
+        };
+    
+        // Create search box
+        L.Control.textbox = L.Control.extend({
+            onAdd: function () {
+                const text = L.DomUtil.create('div', 'info');
+                text.id = 'searchDiv';
+                text.innerHTML = '<input id="searchInput" placeholder="Suche nach Zone, Gebiet oder PLZ..." onkeyup="searchFunction(this.value)"/>';
+                return text;
+            },
+            onRemove: function (map) {}
+        });
+    
+        const textbox = function (opts) {
+            return new L.Control.textbox(opts);
+        };
+        textbox({position: 'topleft'}).addTo(map);
+    }
+
+    // Start loading data
+    loadMappingData();
+</script>
+
+</body>
+</html>

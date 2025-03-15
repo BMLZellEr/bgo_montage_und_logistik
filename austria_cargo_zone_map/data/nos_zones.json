@@ -1,0 +1,22 @@
+{
+  "zones": {
+    "A": { "gebiet": 1, "color": "#3366CC", "name": "Wien und Umgebung" },
+    "B": { "gebiet": 1, "color": "#3366CC", "name": "Niederösterreich (Nordost)" },
+    "C": { "gebiet": 1, "color": "#3366CC", "name": "Niederösterreich (Nordwest)" },
+    "E": { "gebiet": 1, "color": "#3366CC", "name": "Niederösterreich (Süd), Teile von Salzburg" },
+    "D": { "gebiet": 2, "color": "#DC3912", "name": "Oberösterreich (Süd)" },
+    "H": { "gebiet": 2, "color": "#DC3912", "name": "Oberösterreich (Nord)" },
+    "F": { "gebiet": 3, "color": "#FF9900", "name": "Steiermark" },
+    "G": { "gebiet": 4, "color": "#109618", "name": "Kärnten" },
+    "I": { "gebiet": 5, "color": "#990099", "name": "Tirol" },
+    "J": { "gebiet": 6, "color": "#0099C6", "name": "Vorarlberg" }
+  },
+  "gebiet": {
+    "1": { "name": "NOS-Ausliefergebiet 1 (Zonen A, B, C, E)", "color": "#3366CC" },
+    "2": { "name": "NOS-Ausliefergebiet 2 (Zonen D, H)", "color": "#DC3912" },
+    "3": { "name": "NOS-Ausliefergebiet 3 (Zone F)", "color": "#FF9900" },
+    "4": { "name": "NOS-Ausliefergebiet 4 (Zone G)", "color": "#109618" },
+    "5": { "name": "NOS-Ausliefergebiet 5 (Zone I)", "color": "#990099" },
+    "6": { "name": "NOS-Ausliefergebiet 6 (Zone J)", "color": "#0099C6" }
+  }
+}
