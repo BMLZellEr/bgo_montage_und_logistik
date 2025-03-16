@@ -85,6 +85,7 @@
     let zonenLayer;
     let liefergebieteLayer;
     let bezirkLayer;
+    let plzLayer;
     let plzToZoneMap = {};
     let zoneInfo = {
         zones: {},
@@ -157,6 +158,8 @@
             .then(data => {
                 zoneInfo = data;
                 console.log("Zone info loaded from file");
+                // Dispatch an event that zone data is loaded
+                document.dispatchEvent(new Event('zonesLoaded'));
             })
             .catch(error => {
                 console.error("Could not load Zone info:", error);
@@ -483,7 +486,7 @@
         }
         
         if (bezirkLayer && map.hasLayer(bezirkLayer)) {
-            bezirkLayer.bringToBack(); // Ensure Bezirke are behind other layers
+            bezirkLayer.bringToFront(); // Changed to bring Bezirke to front
         }
     }
 
@@ -575,7 +578,7 @@
         });
         liefergebieteLayer.addTo(map);
     
-        const plzLayer = new L.GeoJSON.AJAX("data/vorwahlen+plz.json",
+        plzLayer = new L.GeoJSON.AJAX("data/vorwahlen+plz.json",
             {
                 onEachFeature: popUp,
                 style: function (feature) {
@@ -613,29 +616,6 @@
                     'opacity': 1,
                     'color': '#000000',
                     'fillOpacity': 0.1 // Very low opacity for fill
-                  };
-                }
-            });
-                
-                // If zone is determined, use its gebiet color
-                if (zone && zoneInfo.zones[zone]) {
-                    const gebiet = zoneInfo.zones[zone].gebiet;
-                    return {
-                        'fillColor': zoneInfo.gebiet[gebiet].color,
-                        'weight': 2,
-                        'opacity': 1,
-                        'color': '#000000',
-                        'fillOpacity': 0.7
-                    };
-                }
-                
-                // Default styling if zone can't be determined
-                return {
-                    'fillColor': '#CCCCCC',
-                    'weight': 2,
-                    'opacity': 1,
-                    'color': '#000000',
-                    'fillOpacity': 0.7
                 };
             }
         });
@@ -656,9 +636,9 @@
         const overlayLayers = {
             "Postleitzahlen": plzLayer,
             "Liefergebiete": liefergebieteLayer,
-            "Zonen": zonenLayer
             "Bezirke": bezirkLayer,
             "Wiener Bezirke": wienBezirkLayer,
+            "Zonen": zonenLayer
         };
     
         const layerControl = L.control.layers(mapLayers, overlayLayers, {sortLayers: true}).addTo(map);
