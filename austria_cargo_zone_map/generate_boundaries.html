@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Liefergebiet Boundaries</title>
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <script src="leaflet/leaflet.js"></script>
+    <script src="leaflet/leaflet.ajax.min.js"></script>
+    <style>
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+        #output { width: 100%; height: 300px; margin-top: 20px; }
+        button { padding: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Liefergebiet Boundaries Generator</h1>
+    <p>This tool will generate a GeoJSON file with boundaries for each Liefergebiet.</p>
+    <button id="generate">Generate Boundaries</button>
+    <button id="download" disabled>Download GeoJSON</button>
+    <textarea id="output" readonly></textarea>
+
+    <script>
+        // Load the required data files
+        let liefergebieteData;
+        let zoneInfo;
+        let plzToZoneMap;
+        
+        fetch('data/vorwahlen+plz.json')
+            .then(response => response.json())
+            .then(data => {
+                liefergebieteData = data;
+                console.log("Liefergebiete data loaded");
+                checkAllLoaded();
+            });
+            
+        fetch('data/nos_zones.json')
+            .then(response => response.json())
+            .then(data => {
+                zoneInfo = data;
+                console.log("Zone info loaded");
+                checkAllLoaded();
+            });
+            
+        fetch('data/nos_plz_to_zone.json')
+            .then(response => response.json())
+            .then(data => {
+                plzToZoneMap = data;
+                console.log("PLZ to Zone mapping loaded");
+                checkAllLoaded();
+            });
+        
+        function checkAllLoaded() {
+            if (liefergebieteData && zoneInfo && plzToZoneMap) {
+                document.getElementById('generate').disabled = false;
+            }
+        }
+        
+        // Function to determine zone of a feature
+        function determineZone(feature) {
+            if (!feature || !feature.properties) return null;
+            
+            let result = null;
+            
+            // STEP 1: First try direct postal code matching
+            if (feature.properties.plz) {
+                let plzList = [];
+                if (typeof feature.properties.plz === 'object') {
+                    plzList = Object.keys(feature.properties.plz);
+                } else {
+                    plzList = [feature.properties.plz.toString()];
+                }
+
+                for (const plz of plzList) {
+                    if (plzToZoneMap[plz]) {
+                        return plzToZoneMap[plz];
+                    }
+                }
+            }
+
+            // STEP 2: Try using GemKZ
+            if (feature.properties.iso) {
+                let gemkzList = [];
+                if (typeof feature.properties.iso === 'object') {
+                    gemkzList = Object.keys(feature.properties.iso);
+                } else {
+                    gemkzList = [feature.properties.iso.toString()];
+                }
+
+                for (const gemkz of gemkzList) {
+                    if (gemkz === '60654') return 'F'; // Weinitzen
+
+                    const firstDigit = gemkz.charAt(0);
+
+                    switch(firstDigit) {
+                        case '1': result = 'A'; break;
+                        case '2': result = 'G'; break;
+                        case '3': result = 'B'; break;
+                        case '4': result = 'D'; break;
+                        case '5': result = 'H'; break;
+                        case '6': result = 'F'; break;
+                        case '7': result = 'I'; break;
+                        case '8': result = 'J'; break;
+                        case '9': result = 'A'; break;
+                    }
+
+                    if (result) return result;
+                }
+            }
+
+            // STEP 3: Try vorwahl
+            if (feature.properties.vorwahl) {
+                let vorwahlList = [];
+                if (typeof feature.properties.vorwahl === 'object') {
+                    vorwahlList = Object.keys(feature.properties.vorwahl);
+                } else {
+                    vorwahlList = [feature.properties.vorwahl.toString()];
+                }
+
+                for (const vorwahl of vorwahlList) {
+                    if (vorwahl.startsWith('1')) return 'A';
+                    if (vorwahl.startsWith('2')) return 'A';
+                    if (vorwahl.startsWith('3')) return 'B';
+                    if (vorwahl.startsWith('4')) return 'D';
+                    if (vorwahl.startsWith('5')) return 'H';
+                    if (vorwahl.startsWith('6')) return 'G';
+                    if (vorwahl.startsWith('7')) return 'A';
+                    if (vorwahl.startsWith('8')) return 'F';
+                    if (vorwahl.startsWith('9')) return 'G';
+                }
+            }
+            return result;
+        }
+        
+        // Generate the boundary GeoJSON
+        document.getElementById('generate').addEventListener('click', function() {
+            // Group features by their delivery area (gebiet)
+            const gebietFeatures = {};
+            const zoneFeatures = {};
+            
+            // Process all features
+            liefergebieteData.features.forEach(feature => {
+                const zone = determineZone(feature);
+                if (!zone) return;
+                
+                // Group by gebiet
+                const gebiet = zoneInfo.zones[zone]?.gebiet;
+                if (gebiet) {
+                    if (!gebietFeatures[gebiet]) {
+                        gebietFeatures[gebiet] = [];
+                    }
+                    gebietFeatures[gebiet].push(feature);
+                }
+                
+                // Group by zone
+                if (!zoneFeatures[zone]) {
+                    zoneFeatures[zone] = [];
+                }
+                zoneFeatures[zone].push(feature);
+            });
+            
+            // Create boundaries for each gebiet
+            const gebietBoundaries = {
+                type: 'FeatureCollection',
+                features: []
+            };
+            
+            // Create features for each gebiet
+            for (const gebiet in gebietFeatures) {
+                let allPolygons = [];
+                
+                // Process features for this gebiet
+                gebietFeatures[gebiet].forEach(feature => {
+                    if (feature.geometry.type === 'Polygon') {
+                        allPolygons.push(turf.polygon(feature.geometry.coordinates));
+                    } else if (feature.geometry.type === 'MultiPolygon') {
+                        feature.geometry.coordinates.forEach(polygonCoords => {
+                            allPolygons.push(turf.polygon(polygonCoords));
+                        });
+                    }
+                });
+                
+                // Skip if no valid polygons
+                if (allPolygons.length === 0) continue;
+                
+                // Create a union of all polygons for this gebiet
+                let union = allPolygons[0];
+                for (let i = 1; i < allPolygons.length; i++) {
+                    try {
+                        union = turf.union(union, allPolygons[i]);
+                    } catch (e) {
+                        console.warn(`Error creating union for gebiet ${gebiet}:`, e);
+                    }
+                }
+                
+                // Add the unified polygon to the collection
+                gebietBoundaries.features.push({
+                    type: 'Feature',
+                    properties: {
+                        gebiet: gebiet,
+                        name: zoneInfo.gebiet[gebiet].name,
+                        color: zoneInfo.gebiet[gebiet].color
+                    },
+                    geometry: union.geometry
+                });
+            }
+            
+            // Create boundaries for each zone
+            const zoneBoundaries = {
+                type: 'FeatureCollection',
+                features: []
+            };
+            
+            // Create features for each zone
+            for (const zone in zoneFeatures) {
+                let allPolygons = [];
+                
+                // Process features for this zone
+                zoneFeatures[zone].forEach(feature => {
+                    if (feature.geometry.type === 'Polygon') {
+                        allPolygons.push(turf.polygon(feature.geometry.coordinates));
+                    } else if (feature.geometry.type === 'MultiPolygon') {
+                        feature.geometry.coordinates.forEach(polygonCoords => {
+                            allPolygons.push(turf.polygon(polygonCoords));
+                        });
+                    }
+                });
+                
+                // Skip if no valid polygons
+                if (allPolygons.length === 0) continue;
+                
+                // Create a union of all polygons for this zone
+                let union = allPolygons[0];
+                for (let i = 1; i < allPolygons.length; i++) {
+                    try {
+                        union = turf.union(union, allPolygons[i]);
+                    } catch (e) {
+                        console.warn(`Error creating union for zone ${zone}:`, e);
+                    }
+                }
+                
+                // Add the unified polygon to the collection
+                zoneBoundaries.features.push({
+                    type: 'Feature',
+                    properties: {
+                        zone: zone,
+                        name: zoneInfo.zones[zone].name,
+                        color: zoneInfo.zones[zone].color,
+                        gebiet: zoneInfo.zones[zone].gebiet
+                    },
+                    geometry: union.geometry
+                });
+            }
+            
+            // Show output
+            const output = document.getElementById('output');
+            output.value = JSON.stringify({
+                gebietBoundaries: gebietBoundaries,
+                zoneBoundaries: zoneBoundaries
+            }, null, 2);
+            
+            // Enable download button
+            document.getElementById('download').disabled = false;
+        });
+        
+        // Download the generated GeoJSON
+        document.getElementById('download').addEventListener('click', function() {
+            const data = document.getElementById('output').value;
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'liefergebiet_boundaries.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>
