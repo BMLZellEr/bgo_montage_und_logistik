@@ -187,22 +187,31 @@
         
         // STEP 2: If no PLZ match, try using GemKZ (municipality code)
         if (feature.properties.iso) {
-            let gemkz = null;
+            let gemkzList = [];
             if (typeof feature.properties.iso === 'object') {
-                // Use the first key in the iso object
-                gemkz = Object.keys(feature.properties.iso)[0];
+                gemkzList = Object.keys(feature.properties.iso);
             } else {
-                gemkz = feature.properties.iso.toString();
+                gemkzList = [feature.properties.iso.toString()];
             }
             
-            if (gemkz) {
-                // Apply the GemKZ logic you specified
-                if (gemkz.startsWith('2')) return 'G';
-                if (gemkz.startsWith('4')) return 'D';
-                if (gemkz.startsWith('5')) return 'H';
-                if (gemkz.startsWith('6')) return 'F';
-                if (gemkz.startsWith('7')) return 'I';
-                if (gemkz.startsWith('8')) return 'J';
+            for (const gemkz of gemkzList) {
+                // Specifically handle Weinitzen
+                if (gemkz === '60654') return 'F';
+                
+                // Handle other GemKZ codes based on first digit
+                const firstDigit = gemkz.charAt(0);
+                
+                switch(firstDigit) {
+                    case '1': return 'A'; // Burgenland
+                    case '2': return 'G'; // Kärnten
+                    case '3': return 'B'; // Niederösterreich
+                    case '4': return 'D'; // Oberösterreich
+                    case '5': return 'H'; // Salzburg
+                    case '6': return 'F'; // Steiermark
+                    case '7': return 'I'; // Tirol
+                    case '8': return 'J'; // Vorarlberg
+                    case '9': return 'A'; // Wien
+                }
             }
         }
         
@@ -488,6 +497,7 @@
         if (bezirkLayer && map.hasLayer(bezirkLayer)) {
             bezirkLayer.bringToFront(); // Changed to bring Bezirke to front
         }
+        
     }
 
     // Layer events
@@ -577,7 +587,19 @@
             refreshLayerStyles();
         });
         liefergebieteLayer.addTo(map);
-    
+        
+        document.addEventListener('zonesLoaded', function() {
+            console.log("Zone info loaded, refreshing layers...");
+            if (liefergebieteLayer) {
+                refreshLayerStyles();
+            }
+            if (gemeindenLayer) {
+                gemeindenLayer.eachLayer(function(layer) {
+                    layer.setStyle(styleFeature(layer.feature));
+                });
+            }
+        });
+
         plzLayer = new L.GeoJSON.AJAX("data/vorwahlen+plz.json",
             {
                 onEachFeature: popUp,
@@ -619,6 +641,23 @@
                 };
             }
         });
+
+        gemeindenLayer = new L.GeoJSON.AJAX("data/gemeinden_995_geo.json", {
+            onEachFeature: onEachFeature,
+            style: function(feature) {
+                return {
+                    'fillColor': getFeatureColor(feature),
+                    'weight': 2,
+                    'opacity': 1,
+                    'color': '#000000',
+                    'fillOpacity': 0.7,
+                    'dashArray': ''
+                };
+            }
+        });
+        gemeindenLayer.getAttribution = function () {
+            return 'Bgo Montage Holding GmbH – www.bgo-montage.com | Gemeinden';
+        };
         
         const wienBezirkLayer = new L.GeoJSON.AJAX("data/BezirksgrenzenWien.json", {
             onEachFeature: onEachFeature,
@@ -634,9 +673,10 @@
         });
         
         const overlayLayers = {
+            "Bezirke": bezirkLayer,
+            "Gemeinden": gemeindenLayer,  // Add this line
             "Postleitzahlen": plzLayer,
             "Liefergebiete": liefergebieteLayer,
-            "Bezirke": bezirkLayer,
             "Wiener Bezirke": wienBezirkLayer,
             "Zonen": zonenLayer
         };
