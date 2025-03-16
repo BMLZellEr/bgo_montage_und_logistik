@@ -1,11 +1,11 @@
 {
   "zones": {
-    "A": { "gebiet": 1, "color": "#4285F4", "name": "Wien und Umgebung" },
+    "A": { "gebiet": 1, "color": "#4285F4", "name": "Wien, Wien Umgebung, Burgenland" },
     "B": { "gebiet": 1, "color": "#7B1FA2", "name": "Niederösterreich (Nordost)" },
     "C": { "gebiet": 1, "color": "#00BCD4", "name": "Niederösterreich (Nordwest)" },
-    "E": { "gebiet": 1, "color": "#009688", "name": "Niederösterreich (Süd), Teile von Salzburg" },
-    "D": { "gebiet": 2, "color": "#EA4335", "name": "Oberösterreich (Süd)" },
-    "H": { "gebiet": 2, "color": "#FF5722", "name": "Oberösterreich (Nord)" },
+    "E": { "gebiet": 1, "color": "#009688", "name": "Niederösterreich (Süd), Teile von Salzburg, Teile von Steiermark" },
+    "D": { "gebiet": 2, "color": "#EA4335", "name": "Oberösterreich (Nord)" },
+    "H": { "gebiet": 2, "color": "#FF5722", "name": "Oberösterreich (Süd), Teile von Salzburg" },
     "F": { "gebiet": 3, "color": "#FBBC04", "name": "Steiermark" },
     "G": { "gebiet": 4, "color": "#34A853", "name": "Kärnten" },
     "I": { "gebiet": 5, "color": "#9C27B0", "name": "Tirol" },
