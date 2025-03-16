@@ -46,6 +46,22 @@
 - Dann wird werden **Liefervorschläge** gedruckt.
 - Täglich um **ca. 11:00 Uhr werden Nachträge** gedruckt.
 
+## Touren-Namens Schema
+
+| NAME | SCHEME | INFO |
+| --- | --- | --- |
+| **ABH Kundenamen TT.MM** | **ABH $KUNDE $ORT $WT(TT)** | Selbstabholungs-Tour am Donnerstag |
+| **Postversand TT.MM** | **POSTVERSAND $ORT $KW** | Alle Postversand ohne Fixtermin in KW_12 |
+| **Kundenname KundenOrt TT.MM** | **$KUNDE $ORT $WT(TT)** | Direkt-LKW Tour zur Baustelle am Donnerstag |
+| **SC TIROL WAB TT.MM** | **SC WAB für $Fahrzeuge Touren $WT(TT)** | Lager-WAB Mittwoch <br> für LKW & 7,5t & 3,5t Touren <br> "RAMPE" in "Bemerkung Transport" |
+| **SC 7,5t Tour Innsbruck - Telfs TT.MM** | **SC $Fahrzeuge Tour $ORT_S $ORT_E $WT(TT)** | Untertour 7,5t Fahrzeug <br> Laden von Lager-WAB |
+| **SC LKW Tour Fügen - Jenbach TT.MM** | **SC $Fahrzeuge Tour $ORT_S $ORT_E $WT(TT)**  | Untertour LKW Fahrzeug <br> Laden von Lager-WAB|
+| **Plant SC Leiter / 6 Kunden** |  | Unter-Tour mit 6 Kunden <br> die SC-Leiter Plant |
+| **SC WAB für ULGB MI** | **SC WAB für ULGB $WT(TT)** | **[⛰️ ULGB Voradelberg ist Anders](%EF%B8%8F-vorarlberg-ist-anders)** <br> Lager-WAB Mittwoch <br> Voradelberg **immer "Platz"** |
+| **ULGB Feldkirch - Dornbirn FR** | **ULGB $ORT_S $ORT_E $WT(TT)** | **[⛰️ ULGB Voradelberg ist Anders](%EF%B8%8F-vorarlberg-ist-anders)** <br> Tour am Freitag (lt. ULGB) |
+
+
+
 ## 🛢️ Interner-WAB-Nummern-Kreis & Schema
 - **WAB-Nummer = OO_W_AA**
 - **OO** = **ORTSKENNZAHL** **[Siehe Auftragsnummern-Tabelle]()**
