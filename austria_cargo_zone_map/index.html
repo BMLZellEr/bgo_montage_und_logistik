@@ -11,6 +11,7 @@
     <script src="leaflet/leaflet.ajax.min.js"></script>
     <script src="leaflet/leaflet-hash.js"></script>
     <script src="leaflet/leaflet.CenterCross-v0.0.8.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 
     <style>
         html, body {
@@ -92,6 +93,7 @@
         zones: {},
         gebiet: {}
     };
+    let boundaryData = null;
     
     // Map setup
     let minX = Infinity;
@@ -121,7 +123,7 @@
             .then(data => {
                 plzToZoneMap = data;
                 console.log("PLZ to Zone mapping loaded from file");
-                initializeApp();
+                checkDataLoaded();
             })
             .catch(error => {
                 console.error("Could not load PLZ to Zone mapping:", error);
@@ -137,10 +139,109 @@
                 console.log("Zone info loaded from file");
                 // Dispatch an event that zone data is loaded
                 document.dispatchEvent(new Event('zonesLoaded'));
+                checkDataLoaded();
             })
             .catch(error => {
                 console.error("Could not load Zone info:", error);
             });
+        
+        // Load boundary data
+        fetch('data/liefergebiet_boundaries.json')
+            .then(response => response.json())
+            .then(data => {
+                boundaryData = data;
+                console.log("Boundary data loaded from file");
+                checkDataLoaded();
+            })
+            .catch(error => {
+                console.error("Could not load boundary data:", error);
+            });
+    }
+    
+    function checkDataLoaded() {
+        if (plzToZoneMap && zoneInfo && boundaryData) {
+            initializeApp();
+        }
+    }
+
+    // Function to assign Gemeinden based on spatial relationship to boundaries
+    function assignGemeindenFromBoundaries(gemeindenLayer) {
+        console.log("Assigning Gemeinden based on boundaries...");
+        
+        if (!boundaryData || !boundaryData.gebietBoundaries || !boundaryData.zoneBoundaries) {
+            console.error("Invalid boundaries data");
+            return;
+        }
+        
+        const gebietBoundaries = boundaryData.gebietBoundaries.features;
+        const zoneBoundaries = boundaryData.zoneBoundaries.features;
+        
+        let assignedCount = 0;
+        let unassignedCount = 0;
+        
+        gemeindenLayer.eachLayer(function(layer) {
+            if (!layer.feature) return;
+            
+            // Only process Gemeinden that don't already have a well-defined zone
+            const featureId = layer.feature.id || JSON.stringify(layer.feature.properties);
+            
+            // Skip special cases like Weinitzen
+            if (layer.feature.properties && layer.feature.properties.iso) {
+                const isoProps = layer.feature.properties.iso;
+                if ((typeof isoProps === 'object' && Object.keys(isoProps).includes("60654")) || 
+                    isoProps === "60654") {
+                    // Weinitzen - keep special handling
+                    return;
+                }
+            }
+            
+            // Get the center point of this Gemeinde
+            const bounds = layer.getBounds();
+            const center = bounds.getCenter();
+            const point = turf.point([center.lng, center.lat]);
+            
+            // First try to assign based on zone boundaries (more specific)
+            let assigned = false;
+            
+            for (const boundary of zoneBoundaries) {
+                if (turf.booleanPointInPolygon(point, boundary)) {
+                    const zone = boundary.properties.zone;
+                    zoneCache.set(featureId, zone);
+                    assigned = true;
+                    assignedCount++;
+                    break;
+                }
+            }
+            
+            // If not assigned by zone, try assigning by delivery area (gebiet)
+            if (!assigned) {
+                for (const boundary of gebietBoundaries) {
+                    if (turf.booleanPointInPolygon(point, boundary)) {
+                        const gebiet = boundary.properties.gebiet;
+                        
+                        // Find a zone in this delivery area
+                        for (const [zone, zoneData] of Object.entries(zoneInfo.zones)) {
+                            if (zoneData.gebiet.toString() === gebiet) {
+                                zoneCache.set(featureId, zone);
+                                assigned = true;
+                                assignedCount++;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            if (!assigned) {
+                unassignedCount++;
+            }
+        });
+        
+        console.log(`Assigned ${assignedCount} Gemeinden by boundaries, ${unassignedCount} unassigned`);
+        
+        // Update styling for all layers
+        refreshLayerStyles();
     }
 
     function determineZone(feature) {
@@ -196,7 +297,33 @@
             }
         }
 
-        // STEP 3: If all else fails, try vorwahl (area code)
+        // STEP 3: Check against boundary data (if available)
+        if (boundaryData && feature.geometry) {
+            const center = turf.center(feature);
+            
+            // Check zone boundaries
+            for (const boundary of boundaryData.zoneBoundaries.features) {
+                if (turf.booleanPointInPolygon(center, boundary)) {
+                    return boundary.properties.zone;
+                }
+            }
+            
+            // Check gebiet boundaries
+            for (const boundary of boundaryData.gebietBoundaries.features) {
+                if (turf.booleanPointInPolygon(center, boundary)) {
+                    const gebiet = boundary.properties.gebiet;
+                    
+                    // Find a zone in this delivery area
+                    for (const [zone, zoneData] of Object.entries(zoneInfo.zones)) {
+                        if (zoneData.gebiet.toString() === gebiet) {
+                            return zone;
+                        }
+                    }
+                }
+            }
+        }
+
+        // STEP 4: If all else fails, try vorwahl (area code)
         if (feature.properties.vorwahl) {
             let vorwahlList = [];
             if (typeof feature.properties.vorwahl === 'object') {
@@ -233,7 +360,7 @@
             return zoneInfo.gebiet[gebiet]?.color || '#CCCCCC';
         }
 
-        // Determine zone using all methods (PLZ, GemKZ, vorwahl)
+        // Determine zone using all methods (PLZ, GemKZ, vorwahl, boundaries)
         const zone = determineZone(feature);
 
         // Cache the result
@@ -257,7 +384,7 @@
             return zoneInfo.zones[cachedZone]?.color || '#CCCCCC';
         }
 
-        // Determine zone using all methods (PLZ, GemKZ, vorwahl)
+        // Determine zone using all methods (PLZ, GemKZ, vorwahl, boundaries)
         const zone = determineZone(feature);
 
         // Cache the result
@@ -516,6 +643,9 @@
         if (map.hasLayer(zonenLayer)) {
             zonenLayer.bringToFront(); // Zonen always on top
         }
+        
+        // After layer visibility changes, refresh styles
+        refreshLayerStyles();
     });
 
     map.on('overlayremove', function(e) {
@@ -534,7 +664,7 @@
     });
 
     function initializeApp() {
-        // Create Gemeinden layer first to use its data
+        // Initialize all layers
         gemeindenLayer = new L.GeoJSON.AJAX("data/gemeinden_995_geo.json", {
             onEachFeature: onEachFeature,
             style: function(feature) {
@@ -553,210 +683,138 @@
             return 'Bgo Montage Holding GmbH – www.bgo-montage.com | Gemeinden';
         };
         
-        // Store Gemeinden features by their GemKZ for later use
-        let gemeindenData = {};
-        
+        // When Gemeinden layer is loaded, assign zones using boundary data
         gemeindenLayer.addEventListener('data:loaded', function() {
             console.log("Gemeinden data loaded...");
-            
-            // Create a map of GemKZ codes to gemeinden features
-            gemeindenLayer.eachLayer(function(layer) {
-                if (layer.feature && layer.feature.properties && layer.feature.properties.iso) {
-                    const isoProps = layer.feature.properties.iso;
-                    if (typeof isoProps === 'object') {
-                        for (const gemkz in isoProps) {
-                            gemeindenData[gemkz] = layer.feature;
-                        }
-                    } else {
-                        gemeindenData[isoProps.toString()] = layer.feature;
-                    }
-                }
-            });
-            
-            // Now initialize other layers
-            initializeOtherLayers(gemeindenData);
+            assignGemeindenFromBoundaries(gemeindenLayer);
         });
         
-        function initializeOtherLayers(gemeindenData) {
-            // Initialize Zonen Layer
-            zonenLayer = new L.GeoJSON.AJAX("data/vorwahlen+plz.json", {
-                onEachFeature: onEachFeature,
-                style: function(feature) {
-                    return {
-                        'fillColor': getZoneColor(feature),
-                        'weight': 2,
-                        'opacity': 1,
-                        'color': '#000000',
-                        'fillOpacity': 0.7,
-                        'dashArray': ''
-                    };
-                }
-            });
-            
-            zonenLayer.getAttribution = function () {
-                return 'Bgo Montage Holding GmbH – www.bgo-montage.com | NOS Zonen';
-            };
-            
-            zonenLayer.addEventListener('data:loaded', function () {
-                console.log("Zone layer data loaded...");
-                
-                // Fill missing areas in Zonen Layer from Gemeinden data
-                fillLayerWithGemeindenData(zonenLayer, gemeindenData, 'zone');
-                
-                refreshLayerStyles();
-            });
-            
-            // Initialize Liefergebiete Layer
-            liefergebieteLayer = new L.GeoJSON.AJAX("data/vorwahlen+plz.json", {
-                onEachFeature: onEachFeature,
-                style: styleFeature
-            });
-            
-            liefergebieteLayer.getAttribution = function () {
-                return 'Bgo Montage Holding GmbH – www.bgo-montage.com | NOS Liefergebiete';
-            };
-            
-            liefergebieteLayer.addEventListener('data:loaded', function () {
-                console.log("Liefergebiete data loaded...");
-                document.getElementById('loader').style.display = 'none';
-                addLegend('gebiet');
-                
-                // Fill missing areas in Liefergebiete Layer from Gemeinden data
-                fillLayerWithGemeindenData(liefergebieteLayer, gemeindenData, 'liefergebiete');
-                
-                refreshLayerStyles();
-            });
-            
-            liefergebieteLayer.addTo(map); // Add Liefergebiete layer by default
-            
-            // Initialize PLZ Layer
-            plzLayer = new L.GeoJSON.AJAX("data/vorwahlen+plz.json", {
-                onEachFeature: popUp,
-                style: function (feature) {
-                    if (feature.properties['plzcolor'] === undefined) {
-                        return {
-                            'fillOpacity': 0,
-                            'color': 'rgba(0,0,0,0)'
-                        }
-                    } else {
-                        return {
-                            'color': feature.properties['plzcolor']
-                        }
-                    }
-                }
-            });
-            
-            plzLayer.getAttribution = function () {
-                return 'Bgo Montage Holding GmbH – www.bgo-montage.com | NOS Liefergebiete';
-            };
-            
-            // Initialize Bezirk Layer
-            bezirkLayer = new L.GeoJSON.AJAX("data/bezirke_995_geo.json", {
-                onEachFeature: onEachFeature,
-                style: function(feature) {
-                    return {
-                        'fillColor': 'transparent', // Transparent fill
-                        'weight': 2,
-                        'opacity': 1,
-                        'color': '#000000',
-                        'fillOpacity': 0.1 // Very low opacity for fill
-                    };
-                }
-            });
-            
-            // Initialize Wiener Bezirke Layer
-            const wienBezirkLayer = new L.GeoJSON.AJAX("data/BezirksgrenzenWien.json", {
-                onEachFeature: onEachFeature,
-                style: function(feature) {
-                    return {
-                        'fillColor': zoneInfo.zones['A']?.color || '#3366CC', // Vienna is always in Zone A
-                        'weight': 2,
-                        'opacity': 1,
-                        'color': '#000000',
-                        'fillOpacity': 0.7
-                    };
-                }
-            });
-            
-            // Set up layer control
-            const overlayLayers = {
-                "Bezirke": bezirkLayer,
-                "Gemeinden": gemeindenLayer,
-                "Postleitzahlen": plzLayer,
-                "Liefergebiete": liefergebieteLayer,
-                "Wiener Bezirke": wienBezirkLayer,
-                "Zonen": zonenLayer
-            };
-            
-            L.control.layers(null, overlayLayers, {sortLayers: true}).addTo(map);
-            
-            // Function to fill a layer with missing data from Gemeinden
-            function fillLayerWithGemeindenData(targetLayer, gemeindenData, type) {
-                console.log(`Filling ${type} layer with Gemeinden data...`);
-                
-                // Create a spatial index of areas already covered in the target layer
-                let coveredAreas = {};
-                
-                targetLayer.eachLayer(function(layer) {
-                    if (layer.getBounds) {
-                        const center = layer.getBounds().getCenter();
-                        coveredAreas[`${center.lat.toFixed(3)},${center.lng.toFixed(3)}`] = true;
-                    }
-                });
-                
-                // Count of features added to help with debugging
-                let addedCount = 0;
-                
-                // For each Gemeinde feature, check if it's already covered in the target layer
-                gemeindenLayer.eachLayer(function(gemeindeLayer) {
-                    if (!gemeindeLayer.getBounds) return;
-                    
-                    const gemeindeCenter = gemeindeLayer.getBounds().getCenter();
-                    const centerKey = `${gemeindeCenter.lat.toFixed(3)},${gemeindeCenter.lng.toFixed(3)}`;
-                    
-                    // If this area is not already covered
-                    if (!coveredAreas[centerKey]) {
-                        // Get the GemKZ for this Gemeinde
-                        const gemeindeFeature = gemeindeLayer.feature;
-                        
-                        // Only add features that we can determine a zone for
-                        const zone = determineZone(gemeindeFeature);
-                        if (!zone) return;
-                        
-                        // Create a clone of the feature to add to the target layer
-                        const featureClone = JSON.parse(JSON.stringify(gemeindeFeature));
-                        
-                        // Add the cloned feature to the target layer
-                        const newLayer = L.geoJSON(featureClone, {
-                            onEachFeature: onEachFeature,
-                            style: type === 'zone' ? 
-                                function(feature) {
-                                    return {
-                                        'fillColor': getZoneColor(feature),
-                                        'weight': 2,
-                                        'opacity': 1,
-                                        'color': '#000000',
-                                        'fillOpacity': 0.7
-                                    };
-                                } : 
-                                styleFeature
-                        });
-                        
-                        newLayer.eachLayer(function(l) {
-                            targetLayer.addLayer(l);
-                            addedCount++;
-                        });
-                        
-                        // Mark this area as covered
-                        coveredAreas[centerKey] = true;
-                    }
-                });
-                
-                console.log(`Added ${addedCount} features from Gemeinden to ${type} layer`);
+        zonenLayer = new L.GeoJSON.AJAX("data/vorwahlen+plz.json", {
+            onEachFeature: onEachFeature,
+            style: function(feature) {
+                return {
+                    'fillColor': getZoneColor(feature),
+                    'weight': 2,
+                    'opacity': 1,
+                    'color': '#000000',
+                    'fillOpacity': 0.7,
+                    'dashArray': ''
+                };
             }
+        });
+        
+        zonenLayer.getAttribution = function () {
+            return 'Bgo Montage Holding GmbH – www.bgo-montage.com | NOS Zonen';
+        };
+        
+        zonenLayer.addEventListener('data:loaded', function () {
+            console.log("Zone layer data loaded...");
+            refreshLayerStyles();
+        });
+
+        liefergebieteLayer = new L.GeoJSON.AJAX("data/vorwahlen+plz.json", {
+            onEachFeature: onEachFeature,
+            style: styleFeature
+        });
+        
+        liefergebieteLayer.getAttribution = function () {
+            return 'Bgo Montage Holding GmbH – www.bgo-montage.com | NOS Liefergebiete';
+        };
+        
+        liefergebieteLayer.addEventListener('data:loaded', function () {
+            console.log("Liefergebiete data loaded...");
+            document.getElementById('loader').style.display = 'none';
+            addLegend('gebiet');
+            refreshLayerStyles();
+        });
+        
+        // Add liefergebieteLayer to map by default
+        liefergebieteLayer.addTo(map);
+
+        plzLayer = new L.GeoJSON.AJAX("data/vorwahlen+plz.json", {
+            onEachFeature: popUp,
+            style: function (feature) {
+                if (feature.properties['plzcolor'] === undefined) {
+                    return {
+                        'fillOpacity': 0,
+                        'color': 'rgba(0,0,0,0)'
+                    }
+                } else {
+                    return {
+                        'color': feature.properties['plzcolor']
+                    }
+                }
+            }
+        });
+        
+        plzLayer.getAttribution = function () {
+            return 'Bgo Montage Holding GmbH – www.bgo-montage.com | NOS Liefergebiete';
+        };
+    
+        if (minX < Infinity && maxX > -Infinity && minY < Infinity && maxY > -Infinity) {
+            map.fitBounds([
+                [maxY, minX],
+                [minY, maxX]
+            ]);
         }
         
-        // Create search functionality
+        bezirkLayer = new L.GeoJSON.AJAX("data/bezirke_995_geo.json", {
+            onEachFeature: onEachFeature,
+            style: function(feature) {
+                return {
+                    'fillColor': 'transparent',
+                    'weight': 2,
+                    'opacity': 1,
+                    'color': '#000000',
+                    'fillOpacity': 0.1
+                };
+            }
+        });
+        
+        const wienBezirkLayer = new L.GeoJSON.AJAX("data/BezirksgrenzenWien.json", {
+            onEachFeature: onEachFeature,
+            style: function(feature) {
+                return {
+                    'fillColor': zoneInfo.zones['A']?.color || '#3366CC',
+                    'weight': 2,
+                    'opacity': 1,
+                    'color': '#000000',
+                    'fillOpacity': 0.7
+                };
+            }
+        });
+        
+        // Add optional layer for boundary visualization (for debugging)
+        const boundaryLayer = (boundaryData) ? L.geoJSON(boundaryData.gebietBoundaries, {
+            style: function(feature) {
+                return {
+                    'fillColor': 'transparent',
+                    'weight': 3,
+                    'opacity': 1,
+                    'color': '#FF0000',
+                    'fillOpacity': 0,
+                    'dashArray': '5,5'
+                };
+            }
+        }) : null;
+        
+        const overlayLayers = {
+            "Bezirke": bezirkLayer,
+            "Gemeinden": gemeindenLayer,
+            "Postleitzahlen": plzLayer,
+            "Liefergebiete": liefergebieteLayer,
+            "Wiener Bezirke": wienBezirkLayer,
+			"Zonen": zonenLayer
+        };
+        
+        // Add boundary visualization if user wants to see it (for debugging)
+        if (boundaryLayer) {
+            overlayLayers["Liefergebiet Grenzen"] = boundaryLayer;
+        }
+    
+        const layerControl = L.control.layers(null, overlayLayers, {sortLayers: true}).addTo(map);
+    
+        // Create search box
         window.searchFunction = function(val) {
             minX = Infinity;
             minY = Infinity;
