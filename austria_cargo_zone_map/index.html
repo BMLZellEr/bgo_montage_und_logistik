@@ -490,28 +490,31 @@
     // Layer events
     map.on('overlayadd', function(e) {
         console.log(`Layer added: ${e.name}`);
-        
+    
         // Update legend based on layer
         if (e.name === "Liefergebiete") {
             addLegend('gebiet');
         } else if (e.name === "Zonen") {
             addLegend('zone');
         }
-        
-        // If Zonen layer is added, make sure it's visible on top
-        if (e.name === "Zonen" && zonenLayer) {
-            zonenLayer.bringToFront();
+    
+        // Rearrange layers when a new layer is added
+        if (map.hasLayer(plzLayer)) {
+            plzLayer.bringToBack(); // PLZ at the bottom
         }
         
-        // If bezirkLayer is added, ensure it doesn't cover other important layers
-        if (e.name === "Bezirke" && bezirkLayer) {
-            bezirkLayer.bringToBack();
-            if (map.hasLayer(liefergebieteLayer)) {
-                liefergebieteLayer.bringToFront();
+        if (map.hasLayer(liefergebieteLayer)) {
+            liefergebieteLayer.bringToBack(); // Then Liefergebiete
+            if (map.hasLayer(plzLayer)) {
+                plzLayer.bringToBack(); // Ensure PLZ stays at bottom
             }
-            if (map.hasLayer(zonenLayer)) {
-                zonenLayer.bringToFront();
-            }
+        }
+    
+        // Bezirke and Wiener Bezirke are allowed to stay on top
+        // No need to adjust their position
+    
+        if (map.hasLayer(zonenLayer)) {
+            zonenLayer.bringToFront(); // Zonen always on top
         }
     });
 
@@ -603,26 +606,16 @@
         bezirkLayer = new L.GeoJSON.AJAX("data/bezirke_995_geo.json", {
             onEachFeature: onEachFeature,
             style: function(feature) {
-                // Get the zone based on GemKZ (municipality code)
-                let zone = null;
-                if (feature.properties.iso) {
-                    let gemkz = null;
-                    if (typeof feature.properties.iso === 'object') {
-                        gemkz = Object.keys(feature.properties.iso)[0];
-                    } else {
-                        gemkz = feature.properties.iso.toString();
-                    }
-                    
-                    // Use district code to determine zone
-                    if (gemkz) {
-                        if (gemkz.startsWith('2')) zone = 'G';
-                        if (gemkz.startsWith('4')) zone = 'D';
-                        if (gemkz.startsWith('5')) zone = 'H';
-                        if (gemkz.startsWith('6')) zone = 'F';
-                        if (gemkz.startsWith('7')) zone = 'I';
-                        if (gemkz.startsWith('8')) zone = 'J';
-                    }
+                // When used as an overlay, we want to emphasize borders and reduce fill opacity
+                return {
+                    'fillColor': 'transparent', // Transparent fill
+                    'weight': 2,
+                    'opacity': 1,
+                    'color': '#000000',
+                    'fillOpacity': 0.1 // Very low opacity for fill
+                  };
                 }
+            });
                 
                 // If zone is determined, use its gebiet color
                 if (zone && zoneInfo.zones[zone]) {
@@ -661,11 +654,11 @@
         });
         
         const overlayLayers = {
-            "Liefergebiete": liefergebieteLayer,
-            "Zonen": zonenLayer,
             "Postleitzahlen": plzLayer,
+            "Liefergebiete": liefergebieteLayer,
+            "Zonen": zonenLayer
             "Bezirke": bezirkLayer,
-            "Wiener Bezirke": wienBezirkLayer
+            "Wiener Bezirke": wienBezirkLayer,
         };
     
         const layerControl = L.control.layers(mapLayers, overlayLayers, {sortLayers: true}).addTo(map);
