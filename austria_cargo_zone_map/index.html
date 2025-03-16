@@ -146,7 +146,7 @@
             });
         
         // Load boundary data
-        fetch('data/liefergebiet_boundaries.json')
+        fetch('data/map.geojson')
             .then(response => response.json())
             .then(data => {
                 boundaryData = data;
