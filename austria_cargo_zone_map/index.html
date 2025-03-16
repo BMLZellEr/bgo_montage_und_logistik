@@ -169,6 +169,8 @@
     function determineZone(feature) {
         if (!feature || !feature.properties) return null;
         
+        let result = null;
+        
         // STEP 1: First try direct postal code matching (original approach)
         if (feature.properties.plz) {
             let plzList = [];
@@ -177,15 +179,15 @@
             } else {
                 plzList = [feature.properties.plz.toString()];
             }
-            
+
             for (const plz of plzList) {
                 if (plzToZoneMap[plz]) {
-                    return plzToZoneMap[plz];
+                    return plzToZoneMap[plz]; // Return immediately if we find a direct PLZ match
                 }
             }
         }
-        
-        // STEP 2: If no PLZ match, try using GemKZ (municipality code)
+
+        // STEP 2: Try using GemKZ (municipality code)
         if (feature.properties.iso) {
             let gemkzList = [];
             if (typeof feature.properties.iso === 'object') {
@@ -193,28 +195,30 @@
             } else {
                 gemkzList = [feature.properties.iso.toString()];
             }
-            
+
             for (const gemkz of gemkzList) {
-                // Specifically handle Weinitzen
-                if (gemkz === '60654') return 'F';
-                
+                // Special cases for specific municipalities
+                if (gemkz === '60654') return 'F'; // Weinitzen
+
                 // Handle other GemKZ codes based on first digit
                 const firstDigit = gemkz.charAt(0);
-                
+
                 switch(firstDigit) {
-                    case '1': return 'A'; // Burgenland
-                    case '2': return 'G'; // Kärnten
-                    case '3': return 'B'; // Niederösterreich
-                    case '4': return 'D'; // Oberösterreich
-                    case '5': return 'H'; // Salzburg
-                    case '6': return 'F'; // Steiermark
-                    case '7': return 'I'; // Tirol
-                    case '8': return 'J'; // Vorarlberg
-                    case '9': return 'A'; // Wien
+                    case '1': result = 'A'; break; // Burgenland
+                    case '2': result = 'G'; break; // Kärnten
+                    case '3': result = 'B'; break; // Niederösterreich
+                    case '4': result = 'D'; break; // Oberösterreich
+                    case '5': result = 'H'; break; // Salzburg
+                    case '6': result = 'F'; break; // Steiermark
+                    case '7': result = 'I'; break; // Tirol
+                    case '8': result = 'J'; break; // Vorarlberg
+                    case '9': result = 'A'; break; // Wien
                 }
+
+                if (result) return result; // Return if we found a match
             }
         }
-        
+
         // STEP 3: If all else fails, try vorwahl (area code)
         if (feature.properties.vorwahl) {
             let vorwahlList = [];
@@ -223,7 +227,7 @@
             } else {
                 vorwahlList = [feature.properties.vorwahl.toString()];
             }
-            
+
             for (const vorwahl of vorwahlList) {
                 if (vorwahl.startsWith('1')) return 'A';
                 if (vorwahl.startsWith('2')) return 'A';
@@ -236,9 +240,7 @@
                 if (vorwahl.startsWith('9')) return 'G';
             }
         }
-        
-        // Default fallback
-        return null;
+        return result; // Return the best result we found, or null if none
     }
     
     // Cache for zone determinations to improve performance
@@ -253,22 +255,22 @@
             const gebiet = zoneInfo.zones[cachedZone]?.gebiet;
             return zoneInfo.gebiet[gebiet]?.color || '#CCCCCC';
         }
-        
-        // Determine zone
+
+        // Determine zone using all methods (PLZ, GemKZ, vorwahl)
         const zone = determineZone(feature);
-        
+
         // Cache the result
         if (zone) {
             zoneCache.set(featureId, zone);
         }
-        
+
         if (zone && zoneInfo.zones[zone]) {
             const gebiet = zoneInfo.zones[zone].gebiet;
             return zoneInfo.gebiet[gebiet].color;
         }
         return '#CCCCCC'; // Default gray for unknown zones
     }
-    
+
     // Get the color for a feature based on its zone
     function getZoneColor(feature) {
         // Check cache first
@@ -277,15 +279,15 @@
             const cachedZone = zoneCache.get(featureId);
             return zoneInfo.zones[cachedZone]?.color || '#CCCCCC';
         }
-        
-        // Determine zone
+
+        // Determine zone using all methods (PLZ, GemKZ, vorwahl)
         const zone = determineZone(feature);
-        
+
         // Cache the result
         if (zone) {
             zoneCache.set(featureId, zone);
         }
-        
+
         if (zone && zoneInfo.zones[zone]) {
             return zoneInfo.zones[zone].color;
         }
@@ -416,8 +418,10 @@
 
     // Common style function for all layers
     function styleFeature(feature) {
+        // Get color based on all available data sources
+        const color = getFeatureColor(feature);
         return {
-            'fillColor': getFeatureColor(feature),
+            'fillColor': color,
             'weight': 2,
             'opacity': 1,
             'color': '#000000',
@@ -487,17 +491,23 @@
                 });
             });
         }
-        
+
         if (liefergebieteLayer && map.hasLayer(liefergebieteLayer)) {
             liefergebieteLayer.eachLayer(function(layer) {
+                // Apply styling with priority for already colored areas
                 layer.setStyle(styleFeature(layer.feature));
             });
         }
-        
+
         if (bezirkLayer && map.hasLayer(bezirkLayer)) {
-            bezirkLayer.bringToFront(); // Changed to bring Bezirke to front
+            bezirkLayer.bringToFront();
         }
-        
+
+        if (gemeindenLayer && map.hasLayer(gemeindenLayer)) {
+            gemeindenLayer.eachLayer(function(layer) {
+                layer.setStyle(styleFeature(layer.feature));
+            });
+        }
     }
 
     // Layer events
@@ -571,33 +581,26 @@
         });
 
         
-        liefergebieteLayer = new L.GeoJSON.AJAX("data/vorwahlen+plz.json",
-            {
-                onEachFeature: onEachFeature,
-                style: styleFeature
-            }
-        );
+        liefergebieteLayer = new L.GeoJSON.AJAX("data/vorwahlen+plz.json", {
+            onEachFeature: onEachFeature,
+            style: styleFeature  // This now uses our enhanced styleFeature function
+        });
+
         liefergebieteLayer.getAttribution = function () {
             return 'Bgo Montage Holding GmbH – www.bgo-montage.com | NOS Liefergebiete';
         };
+
         liefergebieteLayer.addEventListener('data:loaded', function () {
-            console.log("Data loaded...");
+            console.log("Liefergebiete data loaded...");
             document.getElementById('loader').style.display = 'none';
             addLegend('gebiet');
-            refreshLayerStyles();
-        });
-        liefergebieteLayer.addTo(map);
-        
-        document.addEventListener('zonesLoaded', function() {
-            console.log("Zone info loaded, refreshing layers...");
-            if (liefergebieteLayer) {
-                refreshLayerStyles();
-            }
-            if (gemeindenLayer) {
-                gemeindenLayer.eachLayer(function(layer) {
-                    layer.setStyle(styleFeature(layer.feature));
-                });
-            }
+
+            // Apply careful styling to fill in missing areas
+            liefergebieteLayer.eachLayer(function(layer) {
+                // Ensure we style every feature, including those that might
+                // only have GemKZ data and no PLZ data
+                layer.setStyle(styleFeature(layer.feature));
+            });
         });
 
         plzLayer = new L.GeoJSON.AJAX("data/vorwahlen+plz.json",
