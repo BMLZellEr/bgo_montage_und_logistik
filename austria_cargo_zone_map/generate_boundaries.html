@@ -1,10 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Improved Liefergebiet Boundaries Generator</title>
+    <title>Outer Boundary Generator for Liefergebiete</title>
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
-    <script src="leaflet/leaflet.js"></script>
-    <script src="leaflet/leaflet.ajax.min.js"></script>
     <style>
         body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
         #output { width: 100%; height: 300px; margin-top: 20px; }
@@ -36,6 +34,9 @@
             height: 400px;
             margin-top: 20px;
             border: 1px solid #ccc;
+            background-color: white;
+            position: relative;
+            overflow: hidden;
         }
         .progress {
             margin-top: 10px;
@@ -51,36 +52,60 @@
             width: 0%;
             transition: width 0.3s ease;
         }
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+        .path-gebiet {
+            fill-opacity: 0.2;
+            stroke-width: 2px;
+        }
+        .path-zone {
+            fill-opacity: 0.1;
+            stroke-width: 1px;
+            stroke-dasharray: 3, 3;
+        }
+        .note {
+            background-color: #e9f7fe;
+            border-left: 4px solid #2196F3;
+            padding: 12px;
+            margin: 20px 0;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
-    <h1>Improved Liefergebiet Boundaries Generator</h1>
-    <p>This tool creates more inclusive boundary polygons for each Liefergebiet, filling gaps in the coverage.</p>
+    <h1>Outer Boundary Generator for Liefergebiete</h1>
+    <p>This tool creates clean outer boundaries for each Liefergebiet and Zone, ensuring all internal areas are absorbed.</p>
+    
+    <div class="note">
+        <strong>How it works:</strong> This tool identifies the outermost points of each delivery area and creates a boundary that encompasses all points, automatically including any "islands" or gaps within the overall boundary.
+    </div>
     
     <div class="options">
         <h3>Configuration Options</h3>
         <label>
-            <input type="radio" name="hull-type" value="concave" checked> 
-            Concave Hull (Alpha Shape) - Better follows the actual shape
+            <input type="radio" name="boundary-type" value="simple" checked> 
+            Simple Boundaries - Basic outer shape (fastest)
         </label>
         <label>
-            <input type="radio" name="hull-type" value="convex"> 
-            Convex Hull - Simpler but may include extra areas
+            <input type="radio" name="boundary-type" value="detailed"> 
+            Detailed Boundaries - More precise shape (slower)
+        </label>
+        <label>
+            Simplification Level: 
+            <input type="number" id="simplify-level" value="0.01" min="0.001" max="0.1" step="0.001">
+            <small>(smaller = more detailed, larger = smoother)</small>
         </label>
         <label>
             Buffer Size (km): 
-            <input type="number" id="buffer-size" value="1" min="0.1" max="10" step="0.1">
-            <small>(used to merge nearby features and fill small gaps)</small>
-        </label>
-        <label>
-            Alpha Value for Concave Hull: 
-            <input type="number" id="alpha-value" value="5" min="1" max="20" step="0.5">
-            <small>(smaller = more detailed, larger = smoother)</small>
+            <input type="number" id="buffer-size" value="0.5" min="0" max="5" step="0.1">
+            <small>(extra padding around boundaries)</small>
         </label>
     </div>
     
-    <button id="generate">Generate Improved Boundaries</button>
-    <button id="preview-btn">Preview Boundaries</button>
+    <button id="generate">Generate Outer Boundaries</button>
+    <button id="preview-btn">Show Preview</button>
     <button id="download" disabled>Download GeoJSON</button>
     
     <div class="progress">
@@ -96,10 +121,7 @@
         let liefergebieteData;
         let zoneInfo;
         let plzToZoneMap;
-        let map = null;
-        let previewLayers = [];
-        let originalFeatures = null;
-        let hullLayers = null;
+        let boundaryLayers = null;
         
         // Add log function
         function log(message) {
@@ -119,7 +141,6 @@
             .then(response => response.json())
             .then(data => {
                 liefergebieteData = data;
-                originalFeatures = data.features;
                 log("✅ Liefergebiete data loaded");
                 checkAllLoaded();
             })
@@ -233,106 +254,145 @@
             return result;
         }
         
-        // Initialize preview map
+        // Simple SVG preview
         document.getElementById('preview-btn').addEventListener('click', function() {
-            initPreviewMap();
+            if (!boundaryLayers) {
+                log("⚠️ No boundaries to preview yet. Please generate boundaries first.");
+                return;
+            }
+            
+            renderSimplePreview();
         });
         
-        function initPreviewMap() {
-            if (map) {
-                map.remove();
+        function renderSimplePreview() {
+            const previewDiv = document.getElementById('preview');
+            previewDiv.innerHTML = '';
+            
+            // Create SVG element
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            previewDiv.appendChild(svg);
+            
+            // Get bounds of all features
+            let bounds = {
+                minX: Infinity,
+                minY: Infinity,
+                maxX: -Infinity,
+                maxY: -Infinity
+            };
+            
+            // Process gebiet boundaries to find bounds
+            boundaryLayers.gebietBoundaries.features.forEach(feature => {
+                if (feature.geometry && feature.geometry.coordinates) {
+                    turf.coordAll(feature).forEach(coord => {
+                        bounds.minX = Math.min(bounds.minX, coord[0]);
+                        bounds.minY = Math.min(bounds.minY, coord[1]);
+                        bounds.maxX = Math.max(bounds.maxX, coord[0]);
+                        bounds.maxY = Math.max(bounds.maxY, coord[1]);
+                    });
+                }
+            });
+            
+            // Set up SVG viewport
+            const svgWidth = previewDiv.clientWidth;
+            const svgHeight = previewDiv.clientHeight;
+            const padding = 20;
+            
+            // Function to convert geo coordinates to SVG coordinates
+            function geoToSvg(coord) {
+                const normalizedX = (coord[0] - bounds.minX) / (bounds.maxX - bounds.minX);
+                const normalizedY = 1 - (coord[1] - bounds.minY) / (bounds.maxY - bounds.minY); // Invert Y for SVG
+                
+                return {
+                    x: padding + normalizedX * (svgWidth - 2 * padding),
+                    y: padding + normalizedY * (svgHeight - 2 * padding)
+                };
             }
             
-            map = L.map('preview').setView([47.5, 13.5], 7);
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-            
-            // If we have generated hull layers, show them
-            if (hullLayers) {
-                previewGeneratedBoundaries();
-            } else {
-                // Otherwise show original features
-                previewOriginalFeatures();
+            // Function to create SVG path from geometry
+            function geometryToPath(geometry) {
+                let pathData = '';
+                
+                if (geometry.type === 'Polygon') {
+                    geometry.coordinates.forEach(ring => {
+                        // Start path
+                        if (ring.length > 0) {
+                            const start = geoToSvg(ring[0]);
+                            pathData += `M ${start.x} ${start.y} `;
+                            
+                            // Add line segments
+                            for (let i = 1; i < ring.length; i++) {
+                                const point = geoToSvg(ring[i]);
+                                pathData += `L ${point.x} ${point.y} `;
+                            }
+                            
+                            // Close path
+                            pathData += 'Z ';
+                        }
+                    });
+                } else if (geometry.type === 'MultiPolygon') {
+                    geometry.coordinates.forEach(polygon => {
+                        polygon.forEach(ring => {
+                            // Start path
+                            if (ring.length > 0) {
+                                const start = geoToSvg(ring[0]);
+                                pathData += `M ${start.x} ${start.y} `;
+                                
+                                // Add line segments
+                                for (let i = 1; i < ring.length; i++) {
+                                    const point = geoToSvg(ring[i]);
+                                    pathData += `L ${point.x} ${point.y} `;
+                                }
+                                
+                                // Close path
+                                pathData += 'Z ';
+                            }
+                        });
+                    });
+                }
+                
+                return pathData;
             }
-        }
-        
-        function previewOriginalFeatures() {
-            if (!originalFeatures) return;
             
-            // Clear any existing layers
-            previewLayers.forEach(layer => map.removeLayer(layer));
-            previewLayers = [];
-            
-            // Create a layer for the original features
-            const features = L.geoJSON(liefergebieteData, {
-                style: function(feature) {
-                    const zone = determineZone(feature);
-                    const color = zone && zoneInfo.zones[zone] ? 
-                          zoneInfo.zones[zone].color : '#CCCCCC';
-                    
-                    return {
-                        fillColor: color,
-                        weight: 1,
-                        opacity: 0.8,
-                        color: '#000',
-                        fillOpacity: 0.6
-                    };
-                }
-            }).addTo(map);
-            
-            previewLayers.push(features);
-            log("📊 Previewing original features");
-        }
-        
-        function previewGeneratedBoundaries() {
-            if (!hullLayers) return;
-            
-            // Clear any existing layers
-            previewLayers.forEach(layer => map.removeLayer(layer));
-            previewLayers = [];
-            
-            // Preview zones
-            const zoneBoundaries = L.geoJSON(hullLayers.zoneBoundaries, {
-                style: function(feature) {
-                    const zone = feature.properties.zone;
-                    const color = zoneInfo.zones[zone] ? 
-                          zoneInfo.zones[zone].color : '#CCCCCC';
-                    
-                    return {
-                        fillColor: color,
-                        weight: 2,
-                        opacity: 0.9,
-                        color: '#000',
-                        fillOpacity: 0.4,
-                        dashArray: '3, 5'
-                    };
-                }
-            }).addTo(map);
-            
-            // Preview gebiete
-            const gebietBoundaries = L.geoJSON(hullLayers.gebietBoundaries, {
-                style: function(feature) {
+            // Draw gebiet boundaries
+            boundaryLayers.gebietBoundaries.features.forEach(feature => {
+                if (feature.geometry) {
+                    const pathData = geometryToPath(feature.geometry);
                     const gebiet = feature.properties.gebiet;
-                    const color = zoneInfo.gebiet[gebiet] ? 
-                          zoneInfo.gebiet[gebiet].color : '#CCCCCC';
+                    const color = zoneInfo.gebiet[gebiet]?.color || '#CCCCCC';
                     
-                    return {
-                        fillColor: color,
-                        weight: 3,
-                        opacity: 1,
-                        color: '#FF0000',
-                        fillOpacity: 0.2
-                    };
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute('d', pathData);
+                    path.setAttribute('fill', color);
+                    path.setAttribute('stroke', '#FF0000');
+                    path.setAttribute('class', 'path-gebiet');
+                    path.setAttribute('title', `Liefergebiet ${gebiet}: ${feature.properties.name}`);
+                    
+                    svg.appendChild(path);
                 }
-            }).addTo(map);
+            });
             
-            previewLayers.push(zoneBoundaries, gebietBoundaries);
-            log("📊 Previewing generated hull boundaries");
+            // Draw zone boundaries on top with dashed lines
+            boundaryLayers.zoneBoundaries.features.forEach(feature => {
+                if (feature.geometry) {
+                    const pathData = geometryToPath(feature.geometry);
+                    const zone = feature.properties.zone;
+                    const color = zoneInfo.zones[zone]?.color || '#CCCCCC';
+                    
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute('d', pathData);
+                    path.setAttribute('fill', color);
+                    path.setAttribute('stroke', '#000000');
+                    path.setAttribute('class', 'path-zone');
+                    path.setAttribute('title', `Zone ${zone}: ${feature.properties.name}`);
+                    
+                    svg.appendChild(path);
+                }
+            });
+            
+            log("📊 Simple preview rendered");
         }
         
-        // Generate improved boundaries
+        // Generate outer boundaries
         document.getElementById('generate').addEventListener('click', async function() {
             log("🔄 Starting boundary generation...");
             document.getElementById('generate').disabled = true;
@@ -340,11 +400,11 @@
             setProgress(0);
             
             // Get configuration options
-            const hullType = document.querySelector('input[name="hull-type"]:checked').value;
+            const boundaryType = document.querySelector('input[name="boundary-type"]:checked').value;
+            const simplifyLevel = parseFloat(document.getElementById('simplify-level').value);
             const bufferSize = parseFloat(document.getElementById('buffer-size').value);
-            const alphaValue = parseFloat(document.getElementById('alpha-value').value);
             
-            log(`📐 Configuration: ${hullType} hull, buffer=${bufferSize}km, alpha=${alphaValue}`);
+            log(`📐 Configuration: ${boundaryType} boundaries, simplify=${simplifyLevel}, buffer=${bufferSize}km`);
             
             try {
                 // Group features by their delivery area (gebiet) and zone
@@ -385,9 +445,9 @@
                     }
                 }
                 
-                log("🔨 Creating improved boundaries...");
+                log("🔨 Creating outer boundaries...");
                 
-                // Create improved boundaries for each gebiet
+                // Create outer boundaries for each gebiet
                 const gebietBoundaries = {
                     type: 'FeatureCollection',
                     features: []
@@ -400,47 +460,58 @@
                     log(`🏗️ Processing Liefergebiet ${gebiet}...`);
                     
                     try {
-                        // Create a single MultiPolygon for all features in this gebiet
-                        const featureCollection = turf.featureCollection(gebietFeatures[gebiet]);
+                        // Extract all points from all features in this gebiet
+                        let allCoordinates = [];
+                        gebietFeatures[gebiet].forEach(feature => {
+                            const coords = turf.coordAll(feature);
+                            allCoordinates = allCoordinates.concat(coords);
+                        });
                         
-                        // Create a buffer around all features to merge gaps
-                        const buffer = turf.buffer(featureCollection, bufferSize, {units: 'kilometers'});
-                        
-                        // If using concave hull, create an alpha shape
-                        let hull;
-                        if (hullType === 'concave') {
-                            const allCoords = [];
-                            turf.coordAll(buffer).forEach(coord => {
-                                allCoords.push(coord);
-                            });
-                            
-                            if (allCoords.length >= 3) { // Need at least 3 points for a hull
-                                hull = turf.concave(
-                                    turf.points(allCoords),
-                                    { maxEdge: alphaValue, units: 'kilometers' }
-                                );
-                            } else {
-                                // Not enough points for concave hull, use convex
-                                hull = turf.convex(featureCollection);
-                            }
-                        } else { // convex hull
-                            hull = turf.convex(buffer);
+                        if (allCoordinates.length < 3) {
+                            log(`⚠️ Not enough coordinates for Liefergebiet ${gebiet}, skipping`);
+                            continue;
                         }
                         
-                        // If hull generation succeeded, add to collection
-                        if (hull) {
-                            gebietBoundaries.features.push({
-                                type: 'Feature',
-                                properties: {
-                                    gebiet: gebiet,
-                                    name: zoneInfo.gebiet[gebiet].name,
-                                    color: zoneInfo.gebiet[gebiet].color
-                                },
-                                geometry: hull.geometry
-                            });
+                        // Create a points feature collection
+                        const points = turf.points(allCoordinates);
+                        
+                        // Create an outer boundary based on the selected method
+                        let boundary;
+                        
+                        if (boundaryType === 'simple') {
+                            // Simple boundary - create convex hull
+                            boundary = turf.convex(points);
                         } else {
-                            log(`⚠️ Couldn't create hull for Liefergebiet ${gebiet}`);
+                            // Detailed boundary - create concave hull with a large value to allow concavities
+                            boundary = turf.concave(points, { maxEdge: 20, units: 'kilometers' });
+                            if (!boundary) {
+                                // Fall back to convex hull if concave fails
+                                boundary = turf.convex(points);
+                            }
                         }
+                        
+                        // Simplify the boundary to reduce complexity
+                        const simplified = turf.simplify(boundary, {
+                            tolerance: simplifyLevel,
+                            highQuality: true
+                        });
+                        
+                        // Add buffer if specified
+                        let finalBoundary = simplified;
+                        if (bufferSize > 0) {
+                            finalBoundary = turf.buffer(simplified, bufferSize, { units: 'kilometers' });
+                        }
+                        
+                        // Add the boundary to the collection
+                        gebietBoundaries.features.push({
+                            type: 'Feature',
+                            properties: {
+                                gebiet: gebiet,
+                                name: zoneInfo.gebiet[gebiet].name,
+                                color: zoneInfo.gebiet[gebiet].color
+                            },
+                            geometry: finalBoundary.geometry
+                        });
                     } catch (error) {
                         log(`⚠️ Error processing Liefergebiet ${gebiet}: ${error.message}`);
                     }
@@ -450,7 +521,7 @@
                     setProgress(30 + (processedGebiete / totalGebiete) * 35); // 30-65%
                 }
                 
-                // Create improved boundaries for each zone
+                // Create outer boundaries for each zone
                 const zoneBoundaries = {
                     type: 'FeatureCollection',
                     features: []
@@ -463,48 +534,59 @@
                     log(`🏗️ Processing Zone ${zone}...`);
                     
                     try {
-                        // Create a single MultiPolygon for all features in this zone
-                        const featureCollection = turf.featureCollection(zoneFeatures[zone]);
+                        // Extract all points from all features in this zone
+                        let allCoordinates = [];
+                        zoneFeatures[zone].forEach(feature => {
+                            const coords = turf.coordAll(feature);
+                            allCoordinates = allCoordinates.concat(coords);
+                        });
                         
-                        // Create a buffer around all features to merge gaps
-                        const buffer = turf.buffer(featureCollection, bufferSize, {units: 'kilometers'});
-                        
-                        // If using concave hull, create an alpha shape
-                        let hull;
-                        if (hullType === 'concave') {
-                            const allCoords = [];
-                            turf.coordAll(buffer).forEach(coord => {
-                                allCoords.push(coord);
-                            });
-                            
-                            if (allCoords.length >= 3) { // Need at least 3 points for a hull
-                                hull = turf.concave(
-                                    turf.points(allCoords),
-                                    { maxEdge: alphaValue, units: 'kilometers' }
-                                );
-                            } else {
-                                // Not enough points for concave hull, use convex
-                                hull = turf.convex(featureCollection);
-                            }
-                        } else { // convex hull
-                            hull = turf.convex(buffer);
+                        if (allCoordinates.length < 3) {
+                            log(`⚠️ Not enough coordinates for Zone ${zone}, skipping`);
+                            continue;
                         }
                         
-                        // If hull generation succeeded, add to collection
-                        if (hull) {
-                            zoneBoundaries.features.push({
-                                type: 'Feature',
-                                properties: {
-                                    zone: zone,
-                                    name: zoneInfo.zones[zone].name,
-                                    color: zoneInfo.zones[zone].color,
-                                    gebiet: zoneInfo.zones[zone].gebiet
-                                },
-                                geometry: hull.geometry
-                            });
+                        // Create a points feature collection
+                        const points = turf.points(allCoordinates);
+                        
+                        // Create an outer boundary based on the selected method
+                        let boundary;
+                        
+                        if (boundaryType === 'simple') {
+                            // Simple boundary - create convex hull
+                            boundary = turf.convex(points);
                         } else {
-                            log(`⚠️ Couldn't create hull for Zone ${zone}`);
+                            // Detailed boundary - create concave hull
+                            boundary = turf.concave(points, { maxEdge: 20, units: 'kilometers' });
+                            if (!boundary) {
+                                // Fall back to convex hull if concave fails
+                                boundary = turf.convex(points);
+                            }
                         }
+                        
+                        // Simplify the boundary to reduce complexity
+                        const simplified = turf.simplify(boundary, {
+                            tolerance: simplifyLevel,
+                            highQuality: true
+                        });
+                        
+                        // Add buffer if specified
+                        let finalBoundary = simplified;
+                        if (bufferSize > 0) {
+                            finalBoundary = turf.buffer(simplified, bufferSize, { units: 'kilometers' });
+                        }
+                        
+                        // Add the boundary to the collection
+                        zoneBoundaries.features.push({
+                            type: 'Feature',
+                            properties: {
+                                zone: zone,
+                                name: zoneInfo.zones[zone].name,
+                                color: zoneInfo.zones[zone].color,
+                                gebiet: zoneInfo.zones[zone].gebiet
+                            },
+                            geometry: finalBoundary.geometry
+                        });
                     } catch (error) {
                         log(`⚠️ Error processing Zone ${zone}: ${error.message}`);
                     }
@@ -515,25 +597,21 @@
                 }
                 
                 // Create final result
-                hullLayers = {
+                boundaryLayers = {
                     gebietBoundaries: gebietBoundaries,
                     zoneBoundaries: zoneBoundaries
                 };
                 
                 // Show output
                 const output = document.getElementById('output');
-                output.value = JSON.stringify(hullLayers, null, 2);
+                output.value = JSON.stringify(boundaryLayers, null, 2);
                 
                 // Enable download button
                 document.getElementById('download').disabled = false;
                 document.getElementById('generate').disabled = false;
                 
-                log("✅ Boundary generation complete!");
+                log("✅ Boundary generation complete! Click 'Show Preview' to see the result.");
                 
-                // If map exists, update preview
-                if (map) {
-                    previewGeneratedBoundaries();
-                }
             } catch (error) {
                 log(`❌ Error generating boundaries: ${error.message}`);
                 document.getElementById('generate').disabled = false;
