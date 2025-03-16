@@ -146,11 +146,11 @@
             });
         
         // Load boundary data
-        fetch('data/map.geojson')
+        fetch('data/map.geojson')  // Update with your actual filename
             .then(response => response.json())
             .then(data => {
                 boundaryData = data;
-                console.log("Boundary data loaded from file");
+                console.log("Boundary data loaded from GeoJSON file");
                 checkDataLoaded();
             })
             .catch(error => {
