@@ -92,6 +92,11 @@
 - Button: **Letztes_E_Avis_Termin** => 3h Aviszeit für Kunden hinterlegen => wird nicht gesendet!
 - Button: **Fahrt Bearbeiten** auf erstellter Tour öffnet Fenster: **Fahrt_Bearbeiten_Fenster**
 
+## Zeit/Stop-Planung von Unter-Touren
+- Tour markieren => Rechtsklick => Tour => **"Tour Zeiten/Einschränkungen Anpassen"** => Verladung & Tour richten
+- Bsp.: 3 Kunden von WAB => Kunde1 - Kunde2 - Kunde3 Aufkoffern => Kunde3 -Kunde 2 - Kunde 1 => Entladen
+- Nach richten Aktualisieren => Rechtsclick => **"Aktion: Live Dispo: Aktivität für Tour erzeugen"**
+
 ## ⏱️ Montagezeit kalkulieren bzw. Transportauftrag checken
 - Öffne **CS-JOB** => Sollte sowieso bei **jedem Start mitlaufen**
 - In **DB-Ansicht** **markieren des Datensatzes** => **Rechtsclick** => Für **Öffne is CS-JOB**
