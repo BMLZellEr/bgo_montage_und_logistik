@@ -219,6 +219,8 @@ Danke im Voraus.
 
 - **Cargo Support NOS💚-Style**
 - **Akutelle Aufgabe** nur **Touren** in **Cargo-Support zusammenstellen & 📗 Avisieren & 🔄 Nachplanen**
+- **Gebiet (J) => St. Anton am Arlberg => Immer Innsbruck verplanen**
+- **Gebiet (H) => Saalfelden & Zell am See & Mittersill => Immer Innsbruck verplanen**
 
 ## 🌍 Gebiete Erik - Hersteller NOS 💚
 - **⛰️ Voradelberg - [VBG] - (SC Dornbirn) - {Partner=ULGB} +  Deutschland Süden (PLZ 8XXXX) [DE] + Liechtenstein [FL] + Schweiz [CH]**
