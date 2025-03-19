@@ -222,7 +222,7 @@ Danke im Voraus.
 - **Gebiet (J) => St. Anton am Arlberg => Immer Innsbruck verplanen**
 - **Gebiet (H) => Saalfelden & Zell am See & Mittersill => Immer Innsbruck verplanen**
 
-## 🌍 Gebiete Erik - Hersteller NOS 💚 => + "Salzburg" => 
+## 🌍 Gebiete Erik - Hersteller NOS 💚 => + "Salzburg" =>
 - **⛰️ Voradelberg - [VBG] - (SC Dornbirn) - {Partner=ULGB} +  Deutschland Süden (PLZ 8XXXX) [DE] + Liechtenstein [FL] + Schweiz [CH]**
     - **🚀 Untertouren** macht **[⛰️ ULGB Voradelberg ist Anders](https://github.com/Kingslayer9988/bgo_holding/blob/main/documentation/Profi-Tour.md#%EF%B8%8F-vorarlberg-ist-anders)**
     * **NOS = 1-2 WAB pro 📅 KW** lt. Helmuth  04.03.2025
@@ -231,8 +231,8 @@ Danke im Voraus.
     * **📅 Liefertage** => Eher **Anfangs der Woche** => Aber Woche geht von **Mo. - Fr.**
     * **❌ Kein Küchenmonteur** => **L&M Küchenmontage**
 
-- **🚠 Tirol - [T] - (SC Innsbruck) + 🇮🇹  Italien [ITA] (Export)**
-    - **1️⃣ Gebiet das ich verplanen soll**
+- **🚠 Tirol - [T] - (SC Innsbruck) + 🇮🇹  Italien [ITA] (Export)** 
+    - **1️⃣ Gebiet Erik ab 19.03.2025**
     - **NOS 💚 = 2-4 WAB pro 📅 KW** lt. Helmuth  04.03.2025
     * **(I)** = Zone in **Cargo-Support**
     * **SC-Leiter** => **Thonhauser F. & Agostini T.**
