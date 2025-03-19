@@ -1,9 +1,3 @@
-> [!NOTE]
-> **Automations & Fixes (Work in Progress): [LINK](../excel_makros/Modul1.bas)**
-> 
-> **💡 [BIG ONE] Make Export-Import Makro for Profi-Tour.csv File => Tourenplan.xlsm** \
-> **💡 [BIG ONE] Same thing for Cargo-Support** 
-
 ## Excel-Makros To-Do List (Hardcore_Tour_Setup.bas)
 - **💡 Check Save files if they have all Data.**
 - **💡 If Possible if make KW_Switcher load Autosave_Files or atleast Extract Data and refill.**
@@ -11,6 +5,8 @@
 - **💡 While KW_Clearing => Also clear Subsheets and fixate Dates on Subsheets (B2)**
 - **💡 While KW_Clearing => Also clear Main_Sheet W(2) - AP(100)**
 - **💡 Make Save_for_SC_Leiter_Button => Combine with auto. mails an SC-Leiter**
+- **💡 Make a Print_for_Alex_Button or even Print_KW_for_Alex_Button**
+- **💡 Maybe Autosave without the Actual_Makro_Main_Sheet => Make a Tourenkonzept_Normal_Sheet**
 
 
 ## Tipps für Excel-Listen: [Excel_Listen_Immer_pro_KW$$]
@@ -51,3 +47,8 @@
     - Werden nur Lokal in Excel gespeichert - (New to me i always put them in the actual file) 
     - Will only work local - thats where the weird keycombo comes from.
 
+> [!NOTE]
+> **Automations & Fixes (Work in Progress): [LINK](../excel_makros/Modul1.bas)**
+> 
+> **💡 [BIG ONE] Make Export-Import Makro for Profi-Tour.csv File => Tourenplan.xlsm** \
+> **💡 [BIG ONE] Same thing for Cargo-Support** 
