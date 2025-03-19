@@ -4,6 +4,15 @@
 > **💡 [BIG ONE] Make Export-Import Makro for Profi-Tour.csv File => Tourenplan.xlsm** \
 > **💡 [BIG ONE] Same thing for Cargo-Support** 
 
+## Excel-Makros To-Do List (Hardcore_Tour_Setup.bas)
+- **💡 Check Save files if they have all Data.**
+- **💡 If Possible if make KW_Switcher load Autosave_Files or atleast Extract Data and refill.**
+- **💡 Make Transfer Tours & WAB's Button work**
+- **💡 While KW_Clearing => Also clear Subsheets and fixate Dates on Subsheets (B2)**
+- **💡 While KW_Clearing => Also clear Main_Sheet W(2) - AP(100)**
+- **💡 Make Save_for_SC_Leiter_Button => Combine with auto. mails an SC-Leiter**
+
+
 ## Tipps für Excel-Listen: [Excel_Listen_Immer_pro_KW$$]
 - Werden **LIVE am Onedrive Ordner bearbeitet** 💀
 - SC-Leiter & BGO = **R,W,D-Rights** 💀
