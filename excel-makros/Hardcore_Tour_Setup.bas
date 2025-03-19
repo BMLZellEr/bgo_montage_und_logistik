@@ -153,7 +153,7 @@ Sub SwitchKW()
         ActiveSheet.Range("B1").Value = firstMonday
         
         ' Update the KW label in the sheet (cell W2)
-        ActiveSheet.Range("W2").Value = "Tourenplan für KW" & kwNumber & " (" & _
+        ActiveSheet.Range("X1").Value = "Tourenplan für KW" & kwNumber & " (" & _
                                       Format(firstMonday, "dd.mm.yyyy") & " - " & _
                                       Format(firstMonday + 4, "dd.mm.yyyy") & ")"
         
