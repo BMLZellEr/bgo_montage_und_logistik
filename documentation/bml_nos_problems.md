@@ -1,4 +1,5 @@
-# Meeting "Besprechung Themen NOS" am Mittwoch 19.03.2025 | 13:00 - 15:00 Uhr:
+# Meeting "Besprechung Themen NOS" 
+- Mittwoch 19.03.2025, 13:00 - 15:00 Uhr:
 
 ## Ich zeige die Probleme bei der Zusammenarbeit von BML und NOS in der Dispo auf: 
 - Ladelisten bzw. Prod-Datum problem mit ungeleichen Tagen zum Lieferdatum => Peter sagt wird gefixed via Maximilian => Dienstag 25.04.2025 gefixed (JA/NEIN) => Eriks fix abgelehnt
