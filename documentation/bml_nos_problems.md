@@ -35,8 +35,10 @@
 
 ## 🔁 Probleme mit Auto. Verladereihenfolge
 - **🛑 Problem: Tour-Zeiten berrechnung in Cargo-Support funktioniert teilweise nicht**
-- **🧑‍💼 Peter: Isabel sollen Problem fixen => ❌ Freitag 21.03.2025 Ich habe das Problem mit Holga Böse besprochen => Kein User-Error fix erfordert Klaus**
+- **🧑‍💼 Peter: Isabel sollen Problem fixen => ❌** (Siehe Probleme mit Touren-Zeiten)
+- **⚠️ Erik: Freitag 21.03.2025 Ich habe das Problem mit Holga Böse besprochen => Kein User-Error fix erfordert Klaus**
 - **❌ Dienstag 25.03.2025 ohne Erik gefixed**
+- **❓ Erik & Holga bis Dienstag 25.03.2025 gefixed❓** 
 
 ## 🕋 Probleme mit hinterlegten Montagezeiten/Volumen/Gewicht
 - **🛑 Problem: Bei NOS stimmen die hinterlegten Zeiten nicht es gibt eine Liste bei Alex mit über 100 Einträgen**
