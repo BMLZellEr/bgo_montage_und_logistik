@@ -10,33 +10,33 @@
 - **🧑‍💼Peter: Sagt wird gefixed via Maximilian**
 - **❓Dienstag 25.03.2025 ohne Erik gefixed (JA/NEIN)**
 
-## Excel-Listen Problem mit Helmuth:
+## 💡 Excel-Listen Problem:
 - **🛑 Problem: Helmuth macht andere Excel-Liste nicht die von BML gewünschte**
 - **✅ Erik: Hat perfekten Fix mit Excel-Makro - Funktioniert auch schon mit Fr, 21.03.2025**
 - **❌ Eriks fixs wurde abgelehnt und wurde nicht mal angesehen.**
 - **🧑‍💼👩‍💼 Peter & Isabel: Sagen wird gefixed indem Peter zu NOS fährt.**
 - **❓Dienstag 25.03.2025 ohne Erik gefixed (JA/NEIN)**
 
-## Probleme mit Tour-Zeiten:
+## ⏱️ Probleme mit Tour-Zeiten:
 - **🛑 Problem: Tour-Zeiten berrechnung in Cargo-Support funktioniert teilweise nicht**
 - **❌ Erik: Ich biete an das Problem zu beheben => Peter lehnt ab => Isabel soll das Problem fixen.**
 - **👩‍💼❌ Isabel: Am Freitag, 21.03.2025 sagt mir Isabel sie will Problem nicht fixen hier ist die Nummer von "Holga Böse"**
 - **✅ Erik: Problem mit Touren-Zeiten am Freitag 21.03 => Halb gefixt => Auswertungen sind falsch => Arbeit funktioniert**
 - **❓Dienstag 25.03.2025 ohne Erik gefixed (JA/NEIN)**
   
-## Probleme mit Frachtbriefen bzw. Auftragsbestätigung für SC-Leiter
+## 🧾 Probleme mit Frachtbriefen bzw. Auftragsbestätigung für SC-Leiter
 - **🛑 Problem: Cargo-Support gibt es keinen Frachtbrief für SC-Leiter**
 - **✅ Erik: Hat Fix gefunden mit Ausftragsbestätigung + Preis entfernen mit PS-Skript funktioniert seit Mi, 19.03.2025**
 - **❌ Eriks fixs wurde abgelehnt und wurde nicht mal angesehen.**
 - **🧑‍💼 Peter: Isabel und Klaus sollen es fixen => ❌ Freitag 21.03.2025 Isabel sagt mir sie und Klaus können Problem nicht fixen**
 - **❌ Dienstag 25.03.2025 ohne Erik gefixed**
 
-## Probleme mit Auto. Verladereihenfolge
+## 🔁 Probleme mit Auto. Verladereihenfolge
 - **🛑 Problem: Tour-Zeiten berrechnung in Cargo-Support funktioniert teilweise nicht**
 - **🧑‍💼 Peter: Isabel sollen Problem fixen => ❌ Freitag 21.03.2025 Ich habe das Problem mit Holga Böse besprochen => Kein User-Error fix erfordert Klaus**
 - **❌ Dienstag 25.03.2025 ohne Erik gefixed**
 
-## Probleme mit hinterlegten Montagezeiten/Volumen/Gewicht
+## 🕋 Probleme mit hinterlegten Montagezeiten/Volumen/Gewicht
 - **🛑 Problem: Bei NOS stimmen die hinterlegten Zeiten nicht es gibt eine Liste bei Alex mit über 100 Einträgen**
 - **✅ Erik: Bietet sich an um das Problem zu fixen => 1-2 Tage zu NOS zu fahren um Datenbank-Einträge zu fixen**
 - **❌ Erik's fix wurde ohne Begründung abgelehnt**
