@@ -15,14 +15,15 @@
 - **✅ Erik: Hat perfekten Fix mit Excel-Makro - Funktioniert auch schon mit Fr, 21.03.2025**
 - **❌ Eriks fixs wurde abgelehnt und wurde nicht mal angesehen.**
 - **🧑‍💼👩‍💼 Peter & Isabel: Sagen wird gefixed indem Peter zu NOS fährt.**
-- **❓Dienstag 25.03.2025 ohne Erik gefixed (JA/NEIN)**
+- **❌ Dienstag 25.03.2025 ohne Erik gefixed**
+- **❓ Eriks-Fix nachträglich angenommen ❓** 
 
 ## ⏱️ Probleme mit Tour-Zeiten:
 - **🛑 Problem: Tour-Zeiten berrechnung in Cargo-Support funktioniert teilweise nicht**
 - **❌ Erik: Ich biete an das Problem zu beheben => Peter lehnt ab => Isabel soll das Problem fixen.**
 - **👩‍💼❌ Isabel: Am Freitag, 21.03.2025 sagt mir Isabel sie will Problem nicht fixen hier ist die Nummer von "Holga Böse"**
+- **❌ Dienstag 25.03.2025 ohne Erik gefixed**
 - **✅ Erik: Problem mit Touren-Zeiten am Freitag 21.03 => Halb gefixt => Auswertungen sind falsch => Arbeit funktioniert**
-- **❓Dienstag 25.03.2025 ohne Erik gefixed (JA/NEIN)**
   
 ## 🧾 Probleme mit Frachtbriefen bzw. Auftragsbestätigung für SC-Leiter
 - **🛑 Problem: Cargo-Support gibt es keinen Frachtbrief für SC-Leiter**
@@ -30,6 +31,7 @@
 - **❌ Eriks fixs wurde abgelehnt und wurde nicht mal angesehen.**
 - **🧑‍💼 Peter: Isabel und Klaus sollen es fixen => ❌ Freitag 21.03.2025 Isabel sagt mir sie und Klaus können Problem nicht fixen**
 - **❌ Dienstag 25.03.2025 ohne Erik gefixed**
+- **❓ Eriks-Fix nachträglich angenommen ❓** 
 
 ## 🔁 Probleme mit Auto. Verladereihenfolge
 - **🛑 Problem: Tour-Zeiten berrechnung in Cargo-Support funktioniert teilweise nicht**
