@@ -1,12 +1,11 @@
 ## Excel-Makros To-Do List (Hardcore_Tour_Setup.bas)
-- **💡 Check Save files if they have all Data.**
-- **💡 If Possible if make KW_Switcher load Autosave_Files or atleast Extract Data and refill.**
+- **💡 Check Save files if they have all Data.** => DONE WORKING
+- **💡 If Possible if make KW_Switcher load Autosave_Files or atleast Extract Data and refill.** => SUPER HARD
 - **💡 Make Transfer Tours & WAB's Button work**
 - **💡 While KW_Clearing => Also clear Subsheets and fixate Dates on Subsheets (B2)**
-- **💡 While KW_Clearing => Also clear Main_Sheet W(2) - AP(100)**
 - **💡 Make Save_for_SC_Leiter_Button => Combine with auto. mails an SC-Leiter**
-- **💡 Make a Print_for_Alex_Button or even Print_KW_for_Alex_Button**
-- **💡 Maybe Autosave without the Actual_Makro_Main_Sheet => Make a Tourenkonzept_Normal_Sheet**
+- **💡 Make a Print_for_Alex_Button or even Print_KW_for_Alex_Button** = DONE> WORKING
+- **💡 Maybe Autosave without the Actual_Makro_Main_Sheet => Make a Tourenkonzept_Normal_Sheet** => DONE WORKING
 
 
 ## Tipps für Excel-Listen: [Excel_Listen_Immer_pro_KW$$]
