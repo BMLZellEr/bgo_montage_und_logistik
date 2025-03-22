@@ -544,16 +544,46 @@ Sub TransferTours()
     Dim carsProcessed As Integer, toursAdded As Integer
     Dim directContainersUsed(6) As Integer ' Counter for direct containers for each day
     
-    ' Dictionary to track LLnr numbers and their colors
-    Dim llnrDict As Object
-    Set llnrDict = CreateObject("Scripting.Dictionary")
+    ' Dictionary to track LLnr numbers (5-digit numbers) and their counts
+    ' Key = 5-digit number, Value = count of appearances
+    Dim llnrCountDict As Object
+    Set llnrCountDict = CreateObject("Scripting.Dictionary")
+    
+    ' Dictionary to track LLnr numbers and their assigned colors
+    ' Key = 5-digit number, Value = color
+    Dim llnrColorDict As Object
+    Set llnrColorDict = CreateObject("Scripting.Dictionary")
+    
     Dim llnrColorIndex As Integer
-    llnrColorIndex = 3 ' Start with color index 3 (red is 3, blue is 5, etc.)
+    llnrColorIndex = 0 ' Start with first color
     
     ' Array to track WAB counters for each day
     Dim wabCounters(6) As Integer
     For day = 0 To 6
         wabCounters(day) = 1 ' Start WAB counter at 1 for each day
+    Next day
+    
+    ' Define array of colors for direct tours (unique colors for each direct tour within a day)
+    Dim directTourColors(14) As Long
+    directTourColors(0) = RGB(220, 230, 255)  ' Light blue
+    directTourColors(1) = RGB(255, 230, 220)  ' Light orange
+    directTourColors(2) = RGB(220, 255, 220)  ' Light green
+    directTourColors(3) = RGB(255, 220, 255)  ' Light magenta
+    directTourColors(4) = RGB(255, 255, 220)  ' Light yellow
+    directTourColors(5) = RGB(230, 230, 255)  ' Light purple
+    directTourColors(6) = RGB(230, 255, 230)  ' Light mint
+    directTourColors(7) = RGB(200, 220, 255)  ' Slightly darker blue
+    directTourColors(8) = RGB(255, 210, 200)  ' Slightly darker orange
+    directTourColors(9) = RGB(200, 255, 200)  ' Slightly darker green
+    directTourColors(10) = RGB(255, 200, 245) ' Slightly darker magenta
+    directTourColors(11) = RGB(255, 255, 200) ' Slightly darker yellow
+    directTourColors(12) = RGB(210, 210, 255) ' Slightly darker purple
+    directTourColors(13) = RGB(210, 255, 210) ' Slightly darker mint
+    
+    ' Dictionaries to track direct tour colors by day (key = tour number, value = color)
+    Dim directTourColorsByDay(0 To 6) As Object
+    For day = 0 To 6
+        Set directTourColorsByDay(day) = CreateObject("Scripting.Dictionary")
     Next day
     
     ' Get worksheets
@@ -577,8 +607,14 @@ Sub TransferTours()
     ' Clear tour areas in destination - make sure to clear all potential WAB cells
     neudorfWs.Range("B3:S33").ClearContents
     neudorfWs.Range("B3:S33").Interior.colorIndex = xlNone
+    neudorfWs.Range("B3:S33").Font.Bold = False
     neudorfWs.Range("B55:S72").ClearContents ' Clear direct container area
     neudorfWs.Range("B55:S72").Interior.colorIndex = xlNone
+    neudorfWs.Range("B55:S72").Font.Bold = False
+    ' Also clear Lager container area
+    neudorfWs.Range("B74:S81").ClearContents
+    neudorfWs.Range("B74:S81").Interior.colorIndex = xlNone
+    neudorfWs.Range("B74:S81").Font.Bold = False
     
     ' Initialize counters
     carsProcessed = 0
@@ -589,46 +625,108 @@ Sub TransferTours()
         directContainersUsed(day) = 0
     Next day
     
-    ' Create an array to store tours and their WAB counts for each day
-    Dim wabToursByDay(0 To 6) As Object
-    
-    ' Initialize collections for each day
-    For day = 0 To 6
-        Set wabToursByDay(day) = CreateObject("Scripting.Dictionary")
-    Next day
-    
-    ' First pass - collect all tours with WABs by day and time
+    ' First pass - scan all tour numbers to identify 5-digit numbers
+    ' and count how many times each appears
     mainCarRow = 5
-    Dim rowIndex As Integer
-    rowIndex = 0 ' Use for preserving original row order
     
     Do While mainCarRow <= 22
-        rowIndex = rowIndex + 1 ' Increment for each car row
-        
         ' Process all days for this car (0-4 for Mon-Fri)
         For day = 0 To 4
             ' Calculate column positions
             sourceCol = 2 + (day * 4)  ' B, F, J, N, R, V, Z
             
-            ' Get tour name
+            ' Get tour number
+            tourNumber = Trim(mainWs.Cells(mainCarRow, sourceCol).Value)
+            
+            ' Process 5-digit numbers in tour number
+            If tourNumber <> "" Then
+                ' Clean the tour number - replace separators with spaces
+                Dim cleanNumber As String
+                cleanNumber = Replace(Replace(Replace(Replace(tourNumber, "+", " "), ",", " "), ";", " "), "-", " ")
+                
+                ' Remove multiple spaces
+                Do While InStr(cleanNumber, "  ") > 0
+                    cleanNumber = Replace(cleanNumber, "  ", " ")
+                Loop
+                
+                ' Split by spaces
+                Dim numParts As Variant
+                numParts = Split(Trim(cleanNumber), " ")
+                
+                ' Check each part for 5-digit numbers
+                Dim i As Integer
+                For i = 0 To UBound(numParts)
+                    If Len(Trim(numParts(i))) = 5 And IsNumeric(Trim(numParts(i))) Then
+                        ' Found a 5-digit number
+                        Dim fiveDigitNum As String
+                        fiveDigitNum = Trim(numParts(i))
+                        
+                        ' Add to count dictionary or increment count
+                        If llnrCountDict.Exists(fiveDigitNum) Then
+                            llnrCountDict(fiveDigitNum) = llnrCountDict(fiveDigitNum) + 1
+                        Else
+                            llnrCountDict.Add fiveDigitNum, 1
+                        End If
+                    End If
+                Next i
+            End If
+        Next day
+        
+        ' Move to next car
+        mainCarRow = mainCarRow + 3
+    Loop
+    
+    ' Assign colors only to LLnr numbers that appear more than once
+    Dim llnrKey As Variant
+    For Each llnrKey In llnrCountDict.keys
+        If llnrCountDict(llnrKey) > 1 Then
+            ' This 5-digit number appears multiple times - assign a color
+            llnrColorDict.Add llnrKey, GetNextColor(llnrColorIndex)
+            llnrColorIndex = llnrColorIndex + 1
+        End If
+    Next llnrKey
+    
+    ' Create a collection to store all tours with WABs in time order
+    Dim wabTourCollection As New Collection
+    Dim rowIndex As Integer
+    
+    ' Scan all tours to collect WAB info
+    mainCarRow = 5
+    rowIndex = 0
+    
+    Do While mainCarRow <= 22
+        rowIndex = rowIndex + 1
+        
+        ' Process all days for this car
+        For day = 0 To 4
+            ' Calculate column position for the day
+            sourceCol = 2 + (day * 4)  ' B, F, J, N, R, V, Z
+            
+            ' Check if there's a tour name
             tourName = Trim(mainWs.Cells(mainCarRow + 1, sourceCol).Value)
             
-            ' Only process if there's a tour
             If tourName <> "" Then
                 ' Get tour details
+                tourNumber = Trim(mainWs.Cells(mainCarRow, sourceCol).Value)
                 tourTime = Trim(mainWs.Cells(mainCarRow + 2, sourceCol).Value)
                 
-                ' IMPORTANT: Get WAB count from the cell 1 to the right of tour time
-                wabCount = GetWabCount(mainWs.Cells(mainCarRow + 2, sourceCol + 2))
+                ' Get WAB count from the cell directly to the right of tour time
+                Dim wabCellText As String
+                wabCellText = Trim(CStr(mainWs.Cells(mainCarRow + 2, sourceCol + 1).Value))
+                wabCount = 0 ' Default to 0
                 
-                ' Format tour time if needed (ensure it's in hh:mm format)
+                ' Extract the number from text like "1 WAB's D" or "2 WAB's D"
+                If wabCellText <> "" Then
+                    If IsNumeric(Left(wabCellText, 1)) Then
+                        wabCount = CInt(Left(wabCellText, 1))
+                    End If
+                End If
+                
+                ' Format time properly
                 If tourTime <> "" Then
-                    ' Check if time needs formatting
                     If Not InStr(tourTime, ":") > 0 Then
-                        ' Try to format as hh:mm
                         On Error Resume Next
                         If IsNumeric(tourTime) Then
-                            ' Convert numeric value to time
                             Dim timeValue As Double
                             timeValue = CDbl(tourTime)
                             tourTime = Format(timeValue, "hh:mm")
@@ -637,84 +735,122 @@ Sub TransferTours()
                     End If
                 End If
                 
-                ' Only add tours with WABs
-                If wabCount > 0 Then
-                    ' Store tour info as key=time_rowIndex, value=wabCount
-                    ' Adding rowIndex ensures unique keys even with same time
-                    Dim timeKey As String
-                    timeKey = Format(tourTime, "hh:mm") & "_" & Format(rowIndex, "000")
+                ' Check if this is a direct container
+                isDirectContainer = CheckboxValue(mainWs.Cells(mainCarRow + 2, sourceCol + 3))
+                
+                ' Assign color for direct containers
+                If isDirectContainer Then
+                    Dim directTourKey As String
+                    directTourKey = tourNumber & "|" & tourName
                     
-                    ' Add to dictionary for this day
-                    wabToursByDay(day).Add timeKey, wabCount
+                    If Not directTourColorsByDay(day).Exists(directTourKey) Then
+                        Dim colorIndex As Integer
+                        colorIndex = directTourColorsByDay(day).count Mod UBound(directTourColors)
+                        directTourColorsByDay(day).Add directTourKey, directTourColors(colorIndex)
+                    End If
+                End If
+                
+                ' If this tour has WABs, add it to our collection
+                If wabCount > 0 Then
+                    ' Store as: day|time|wabCount|rowIndex|tourName|tourNumber|isDirectContainer
+                    Dim tourData As String
+                    tourData = day & "|" & Format(tourTime, "hh:mm") & "|" & wabCount & "|" & _
+                               rowIndex & "|" & tourName & "|" & tourNumber & "|" & (isDirectContainer And 1)
+                    
+                    ' Add to collection
+                    wabTourCollection.Add tourData
                 End If
             End If
         Next day
         
-        ' Move to next car
         mainCarRow = mainCarRow + 3
     Loop
     
-    ' Now generate WAB numbers for each day based on the tours
+    ' Sort the tours by day and time
+    Dim wabTourArray() As String
+    ReDim wabTourArray(1 To wabTourCollection.count)
+    
+    For i = 1 To wabTourCollection.count
+        wabTourArray(i) = wabTourCollection(i)
+    Next i
+    
+    ' Simple bubble sort to order by day and time
+    Dim j As Integer, temp As String
+    For i = LBound(wabTourArray) To UBound(wabTourArray) - 1
+        For j = i + 1 To UBound(wabTourArray)
+            Dim parts1 As Variant, parts2 As Variant
+            parts1 = Split(wabTourArray(i), "|")
+            parts2 = Split(wabTourArray(j), "|")
+            
+            ' Compare day
+            Dim day1 As Integer, day2 As Integer
+            day1 = CInt(parts1(0))
+            day2 = CInt(parts2(0))
+            
+            ' Compare time
+            Dim time1 As String, time2 As String
+            time1 = parts1(1)
+            time2 = parts2(1)
+            
+            ' Sort by day, then by time
+            If day1 > day2 Or (day1 = day2 And time1 > time2) Then
+                temp = wabTourArray(i)
+                wabTourArray(i) = wabTourArray(j)
+                wabTourArray(j) = temp
+            End If
+        Next j
+    Next i
+    
+    ' Create a dictionary to store WAB numbers
     Dim wabNumberDict As Object
     Set wabNumberDict = CreateObject("Scripting.Dictionary")
     
-    ' Process each day
+    ' Reset WAB counters to 1 for each day
     For day = 0 To 6
-        Dim wabCounter As Integer
-        wabCounter = 1 ' Start at 1 for each day
-        
-        ' Skip empty days
-        If wabToursByDay(day).count > 0 Then
-            ' Get sorted list of keys for this day
-            Dim timeKeys As Variant
-            timeKeys = wabToursByDay(day).keys
-            
-            ' Sort the keys (important for time-based ordering)
-            SortKeys timeKeys
-            
-            ' Debug output
-            Debug.Print "Day " & (day + 1) & " has " & UBound(timeKeys) + 1 & " WAB tours"
-            
-            ' Process tours in time order
-            Dim i As Integer
-            For i = 0 To UBound(timeKeys)
-                ' Get WAB count for this tour
-                Dim tourWabCount As Integer
-                tourWabCount = wabToursByDay(day).Item(timeKeys(i))
-                
-                ' Extract original time part from the key
-                Dim timePart As String
-                timePart = Left(timeKeys(i), 5) ' "hh:mm"
-                
-                ' Generate WAB number
-                Dim wabNumber As String
-                
-                If tourWabCount = 1 Then
-                    ' Single WAB format: 12_W_AA
-                    wabNumber = "12_" & (day + 1) & "_" & Format(wabCounter, "00")
-                    ' Debug output
-                    Debug.Print "  Time: " & timePart & ", Single WAB: " & wabNumber
-                Else
-                    ' Multiple WAB format: 12_W_AA/BB
-                    Dim endWab As Integer
-                    endWab = wabCounter + tourWabCount - 1
-                    wabNumber = "12_" & (day + 1) & "_" & Format(wabCounter, "00") & "/" & Format(endWab, "00")
-                    ' Debug output
-                    Debug.Print "  Time: " & timePart & ", Multiple WABs: " & wabNumber & " (count=" & tourWabCount & ")"
-                End If
-                
-                ' Store WAB number with tour info (use original time and count for lookup)
-                Dim lookupKey As String
-                lookupKey = day & "|" & timePart & "|" & tourWabCount & "|" & timeKeys(i)
-                wabNumberDict.Add lookupKey, wabNumber
-                
-                ' Increment counter for next tour
-                wabCounter = wabCounter + tourWabCount
-            Next i
-        End If
+        wabCounters(day) = 1
     Next day
     
-    ' Second pass - process the tours with assigned WAB numbers
+    ' Process the sorted tours and assign WAB numbers
+    For i = LBound(wabTourArray) To UBound(wabTourArray)
+        ' Parse the tour data
+        Dim tourParts As Variant
+        tourParts = Split(wabTourArray(i), "|")
+        
+        day = CInt(tourParts(0))
+        Dim timeStr As String
+        timeStr = tourParts(1)
+        wabCount = CInt(tourParts(2))
+        rowIndex = CInt(tourParts(3))
+        tourName = tourParts(4)
+        tourNumber = tourParts(5)
+        isDirectContainer = (tourParts(6) = "1")
+        
+        ' Generate WAB number for this tour
+        Dim wabNumber As String
+        wabNumber = FormatWABNumber(day, wabCounters(day), wabCount)
+        
+        ' Create lookup key
+        Dim lookupKey As String
+        lookupKey = day & "|" & timeStr & "|" & wabCount & "|" & rowIndex
+        
+        ' Add to dictionary
+        wabNumberDict.Add lookupKey, wabNumber
+        
+        ' Debug output
+        Debug.Print "Day " & (day + 1) & ", Time: " & timeStr & ", Tour: " & tourName & _
+                   ", WAB: " & wabNumber & " (count=" & wabCount & ")"
+        
+        ' Increment WAB counter for next tour
+        wabCounters(day) = wabCounters(day) + wabCount
+    Next i
+    
+    ' Create dictionary to store all WAB tours by day
+    Dim wabToursByDay(0 To 6) As Object
+    For day = 0 To 6
+        Set wabToursByDay(day) = CreateObject("Scripting.Dictionary")
+    Next day
+    
+    ' Process the tours one final time to put everything together
     mainCarRow = 5
     subCarRow = 3
     rowIndex = 0
@@ -740,8 +876,16 @@ Sub TransferTours()
                 workers = Trim(mainWs.Cells(mainCarRow, sourceCol + 3).Value)
                 tourTime = Trim(mainWs.Cells(mainCarRow + 2, sourceCol).Value)
                 
-                ' Get WAB count for this tour - use the cell 2 columns right of the tour time
-                wabCount = GetWabCount(mainWs.Cells(mainCarRow + 2, sourceCol + 2))
+                ' Get WAB count from the cell directly to the right of tour time
+                wabCellText = Trim(CStr(mainWs.Cells(mainCarRow + 2, sourceCol + 1).Value))
+                wabCount = 0 ' Default to 0
+                
+                ' Extract the number from text like "1 WAB's D" or "2 WAB's D"
+                If wabCellText <> "" Then
+                    If IsNumeric(Left(wabCellText, 1)) Then
+                        wabCount = CInt(Left(wabCellText, 1))
+                    End If
+                End If
                 
                 ' Format tour time if needed
                 If tourTime <> "" Then
@@ -756,58 +900,37 @@ Sub TransferTours()
                     End If
                 End If
                 
+                ' Check if this is a direct container
+                isDirectContainer = CheckboxValue(mainWs.Cells(mainCarRow + 2, sourceCol + 3))
+                
+                ' Get the color for this direct tour if applicable
+                Dim directTourColor As Long
+                directTourColor = -1 ' Default (no color)
+                
+                If isDirectContainer Then
+                    ' Create the same key used in the first pass
+                    directTourKey = tourNumber & "|" & tourName
+                    
+                    ' Lookup the color for this direct tour
+                    If directTourColorsByDay(day).Exists(directTourKey) Then
+                        directTourColor = directTourColorsByDay(day).Item(directTourKey)
+                    End If
+                End If
+                
                 ' Get WAB number if applicable
-                Dim wabNumbers As String
-                wabNumbers = ""
+                wabNumber = ""
                 
                 If wabCount > 0 Then
-                    ' Create unique time key including row index
-                    timeKey = Format(tourTime, "hh:mm") & "_" & Format(rowIndex, "000")
+                    ' Create lookup key
+                    lookupKey = day & "|" & Format(tourTime, "hh:mm") & "|" & wabCount & "|" & rowIndex
                     
-                    ' Look up WAB number in our dictionary - try specific key first
-                    lookupKey = day & "|" & Format(tourTime, "hh:mm") & "|" & wabCount & "|" & timeKey
-                    
-                    ' Try to find WAB number using various matching strategies
+                    ' Look up WAB number in our dictionary
                     If wabNumberDict.Exists(lookupKey) Then
-                        ' Exact match with time, count, and row
-                        wabNumbers = wabNumberDict.Item(lookupKey)
-                        Debug.Print "Found exact WAB match: " & wabNumbers & " for " & lookupKey
+                        wabNumber = wabNumberDict.Item(lookupKey)
                     Else
-                        ' Try with just day, time and count
-                        Dim foundKey As String
-                        foundKey = ""
-                        
-                        ' Try to find by day, time and count
-                        Dim allKeys As Variant
-                        allKeys = wabNumberDict.keys
-                        
-                        For i = 0 To UBound(allKeys)
-                            Dim keyParts As Variant
-                            keyParts = Split(allKeys(i), "|")
-                            
-                            ' Match day and time part (first 5 chars of keyParts(1))
-                            If CInt(keyParts(0)) = day And _
-                               Left(keyParts(1), 5) = Format(tourTime, "hh:mm") And _
-                               CInt(keyParts(2)) = wabCount Then
-                                foundKey = allKeys(i)
-                                Exit For
-                            End If
-                        Next i
-                        
-                        If foundKey <> "" Then
-                            wabNumbers = wabNumberDict.Item(foundKey)
-                            Debug.Print "Found partial WAB match: " & wabNumbers & " for " & lookupKey
-                        Else
-                            ' Generate a WAB number as fallback
-                            If wabCount = 1 Then
-                                wabNumbers = "12_" & (day + 1) & "_" & Format(wabCounters(day), "00")
-                            Else
-                                endWab = wabCounters(day) + wabCount - 1
-                                wabNumbers = "12_" & (day + 1) & "_" & Format(wabCounters(day), "00") & "/" & Format(endWab, "00")
-                            End If
-                            wabCounters(day) = wabCounters(day) + wabCount
-                            Debug.Print "Generated fallback WAB: " & wabNumbers & " for " & lookupKey
-                        End If
+                        ' If not found for some reason, use a fallback
+                        wabNumber = FormatWABNumber(day, wabCounters(day), wabCount)
+                        wabCounters(day) = wabCounters(day) + wabCount
                     End If
                 End If
                 
@@ -815,7 +938,6 @@ Sub TransferTours()
                 Dim checkboxCol As Integer
                 checkboxCol = sourceCol + 3
                 hasNochPlatz = CheckboxValue(mainWs.Cells(mainCarRow + 1, checkboxCol))
-                isDirectContainer = CheckboxValue(mainWs.Cells(mainCarRow + 2, sourceCol + 3))
                 
                 ' Modify name if "Noch Platz" is checked
                 If hasNochPlatz Then
@@ -824,9 +946,37 @@ Sub TransferTours()
                     End If
                 End If
                 
-                ' Process LLnr numbers for color matching
+                ' Check for 5-digit numbers in this tour that need coloring
                 Dim llnrColor As Long
-                llnrColor = ProcessLLnr(tourNumber, llnrDict, llnrColorIndex)
+                llnrColor = -1 ' Default (no color)
+                Dim matchingLLnr As String
+                matchingLLnr = ""
+                
+                ' Process the tour number to extract 5-digit numbers
+                cleanNumber = Replace(Replace(Replace(Replace(tourNumber, "+", " "), ",", " "), ";", " "), "-", " ")
+                
+                ' Remove multiple spaces
+                Do While InStr(cleanNumber, "  ") > 0
+                    cleanNumber = Replace(cleanNumber, "  ", " ")
+                Loop
+                
+                ' Split by spaces and look for matching 5-digit numbers
+                numParts = Split(Trim(cleanNumber), " ")
+                
+                For i = 0 To UBound(numParts)
+                    If Len(Trim(numParts(i))) = 5 And IsNumeric(Trim(numParts(i))) Then
+                        ' This is a 5-digit number
+                        fiveDigitNum = Trim(numParts(i))
+                        
+                        ' Check if this is a number that appears multiple times
+                        If llnrColorDict.Exists(fiveDigitNum) Then
+                            ' This is a number that needs coloring
+                            llnrColor = llnrColorDict(fiveDigitNum)
+                            matchingLLnr = fiveDigitNum
+                            Exit For ' Use the first match found
+                        End If
+                    End If
+                Next i
                 
                 ' Check if this should go to direct container area
                 If isDirectContainer And directContainersUsed(day) < 6 Then
@@ -834,20 +984,23 @@ Sub TransferTours()
                     Dim directRow As Integer
                     directRow = 55 + (directContainersUsed(day) * 3)
                     
-                    ' Copy tour data to direct container section
+                    ' Copy tour data to direct container section with the unique direct tour color
                     CopyTourToDestination neudorfWs, directRow, destCol, tourName, tourNumber, _
-                                         tourTime, workers, wabCount, hasNochPlatz, isDirectContainer, llnrColor, wabNumbers
+                                         tourTime, workers, wabCount, hasNochPlatz, _
+                                         isDirectContainer, llnrColor, matchingLLnr, wabNumber, directTourColor
                     
-                    ' Regular tour - copy to car's row
+                    ' Regular tour - copy to car's row with the same unique direct tour color
                     CopyTourToDestination neudorfWs, subCarRow, destCol, tourName, tourNumber, _
-                                         tourTime, workers, wabCount, hasNochPlatz, isDirectContainer, llnrColor, wabNumbers
+                                         tourTime, workers, wabCount, hasNochPlatz, _
+                                         isDirectContainer, llnrColor, matchingLLnr, wabNumber, directTourColor
                     
                     ' Increment direct container counter for this day
                     directContainersUsed(day) = directContainersUsed(day) + 1
                 Else
                     ' Regular tour - copy to car's row
                     CopyTourToDestination neudorfWs, subCarRow, destCol, tourName, tourNumber, _
-                                         tourTime, workers, wabCount, hasNochPlatz, isDirectContainer, llnrColor, wabNumbers
+                                         tourTime, workers, wabCount, hasNochPlatz, _
+                                         isDirectContainer, llnrColor, matchingLLnr, wabNumber, directTourColor
                 End If
                 
                 toursAdded = toursAdded + 1
@@ -859,11 +1012,121 @@ Sub TransferTours()
         subCarRow = subCarRow + 3
     Loop
     
+    ' NEW PART: Process Lager-Container fields for non-direct tours with WABs
+    
+    ' Define colors for Lager containers
+    Dim lgrColors(3) As Long
+    lgrColors(0) = RGB(220, 245, 255) ' Soft Sky Blue
+    lgrColors(1) = RGB(245, 220, 255) ' Gentle Lavender
+    lgrColors(2) = RGB(225, 255, 220) ' Mint Mist
+    lgrColors(3) = RGB(255, 245, 215) ' Warm Peach Glow
+    
+    ' Use unique variable names to avoid conflicts with existing variables
+    Dim lgrNonDirectWabs(0 To 4, 0 To 3) As String  ' Array to store non-direct WAB numbers [day, index]
+    Dim lgrWabCount(0 To 4) As Integer  ' Count of non-direct WABs per day
+    
+    ' Initialize counts
+    For lgrDay = 0 To 4
+        lgrWabCount(lgrDay) = 0
+    Next lgrDay
+    
+    ' Scan through the destination sheet to find non-direct tours with WAB numbers
+    For lgrDay = 0 To 4
+        lgrDestCol = 2 + (lgrDay * 3)  ' B, E, H, K, N
+        
+        ' Scan through rows 3-33, stepping by 3 for each tour
+        For lgrRow = 3 To 33 Step 3
+            ' Check for WAB number cell (row+1, col+2)
+            Dim lgrWabCell As Range
+            Set lgrWabCell = neudorfWs.Cells(lgrRow + 1, lgrDestCol + 2)
+            
+            ' If cell has a value and yellow background (WAB number)
+            If lgrWabCell.Value <> "" And lgrWabCell.Interior.Color = RGB(255, 255, 0) Then
+                ' Check if this is NOT a direct container (no special background color)
+                Dim lgrTourRange As Range
+                Set lgrTourRange = neudorfWs.Range(neudorfWs.Cells(lgrRow, lgrDestCol), neudorfWs.Cells(lgrRow + 2, lgrDestCol))
+                
+                ' If tour is not a direct container (has no background color)
+                If lgrTourRange.Interior.colorIndex = xlNone Or lgrTourRange.Interior.Color = RGB(255, 255, 255) Then
+                With lgrWabCell
+                    .Interior.Color = lgrColors(lgrIdx Mod 4)
+                    .Font.Bold = True
+                    .HorizontalAlignment = xlCenter
+                    .Borders.LineStyle = xlContinuous
+                    .Borders.Weight = xlThin
+                    .Borders.Color = RGB(0, 0, 0) ' Black border
+                End With
+                    ' Store the WAB number if we still have space (max 4 per day)
+                    If lgrWabCount(lgrDay) < 4 Then
+                        lgrNonDirectWabs(lgrDay, lgrWabCount(lgrDay)) = lgrWabCell.Value
+                        lgrWabCount(lgrDay) = lgrWabCount(lgrDay) + 1
+                    End If
+                End If
+            End If
+        Next lgrRow
+    Next lgrDay
+    
+    ' Now place the non-direct WAB numbers in the Lager-Container fields
+    For lgrDay = 0 To 4
+        lgrDestCol = 2 + (lgrDay * 3)  ' B, E, H, K, N
+        
+        ' Process all non-direct WABs for this day
+        For lgrIdx = 0 To lgrWabCount(lgrDay) - 1
+            If lgrIdx < 4 Then ' Maximum 4 containers per day
+                ' Calculate row for this Lager container (rows 74, 76, 78, 80)
+                Dim lgrContainerRow As Integer
+                lgrContainerRow = 74 + (lgrIdx * 2)
+                
+                ' Set the WAB number
+                neudorfWs.Cells(lgrContainerRow, lgrDestCol).Value = lgrNonDirectWabs(lgrDay, lgrIdx)
+                
+                ' Format the entire 2x3 container field
+                Dim lgrContainerRange As Range
+                Set lgrContainerRange = neudorfWs.Cells(lgrContainerRow, lgrDestCol)
+                
+                ' Apply formatting
+                With lgrContainerRange
+                    .Interior.Color = lgrColors(lgrIdx Mod 4)
+                    .Font.Bold = True
+                    .HorizontalAlignment = xlCenter
+                    .Borders.LineStyle = xlContinuous
+                    .Borders.Weight = xlThin
+                    .Borders.Color = RGB(0, 0, 0) ' Black border
+                    
+                End With
+            End If
+        Next lgrIdx
+    Next lgrDay
+    ' END OF NEW PART
+    
     ' Show results
     MsgBox "Transfer complete:" & vbCrLf & _
            "Cars processed: " & carsProcessed & vbCrLf & _
            "Tours added: " & toursAdded, vbInformation
 End Sub
+
+' Function to properly format WAB numbers based on the count
+Function FormatWABNumber(day As Integer, startWab As Integer, wabCount As Integer) As String
+    ' For single WAB, format is 12_D_NN
+    If wabCount = 1 Then
+        FormatWABNumber = "12_" & (day + 1) & "_" & Format(startWab, "00")
+    Else
+        ' For exactly 2 WABs, use format 12_D_NN|MM (individual numbers separated by |)
+        If wabCount = 2 Then
+            ' For exactly 2 WABs, use pipe separator
+            Dim secondWab As Integer
+            secondWab = startWab + 1
+            FormatWABNumber = "12_" & (day + 1) & "_" & Format(startWab, "00") & "|" & _
+                             Format(secondWab, "00")
+        Else
+            ' For 3+ WABs, use format 12_D_NN/MM (range with /)
+            Dim endWab As Integer
+            endWab = startWab + wabCount - 1
+            FormatWABNumber = "12_" & (day + 1) & "_" & Format(startWab, "00") & "/" & _
+                             Format(endWab, "00")
+        End If
+    End If
+End Function
 
 ' Helper function to sort array of keys
 Sub SortKeys(keys As Variant)
@@ -885,7 +1148,8 @@ End Sub
 Sub CopyTourToDestination(ws As Worksheet, row As Integer, col As Integer, tourName As String, _
                         tourNumber As String, tourTime As String, workers As String, _
                         wabCount As Integer, hasNochPlatz As Boolean, isDirectContainer As Boolean, _
-                        Optional llnrColor As Long = -1, Optional wabNumbers As String = "")
+                        Optional llnrColor As Long = -1, Optional llnrMatch As String = "", _
+                        Optional wabNumbers As String = "", Optional directTourColor As Long = -1)
     ' Copy the data
     ws.Cells(row, col).Value = tourName
     ws.Cells(row + 1, col).Value = tourNumber
@@ -897,32 +1161,61 @@ Sub CopyTourToDestination(ws As Worksheet, row As Integer, col As Integer, tourN
     ws.Cells(row + 2, col + 2).Value = tourTime
     ws.Cells(row + 2, col + 2).NumberFormat = "hh:mm"
     
+    ' Add borders to the entire 3x3 tour field
+    Dim tourFieldRange As Range
+    Set tourFieldRange = ws.Range(ws.Cells(row, col), ws.Cells(row + 2, col + 2))
+    
+    With tourFieldRange.Borders(xlEdgeLeft)
+        .LineStyle = xlContinuous
+        .Weight = xlThin
+        .colorIndex = xlAutomatic
+    End With
+    
+    With tourFieldRange.Borders(xlEdgeTop)
+        .LineStyle = xlContinuous
+        .Weight = xlThin
+        .colorIndex = xlAutomatic
+    End With
+    
+    With tourFieldRange.Borders(xlEdgeBottom)
+        .LineStyle = xlContinuous
+        .Weight = xlThin
+        .colorIndex = xlAutomatic
+    End With
+    
+    With tourFieldRange.Borders(xlEdgeRight)
+        .LineStyle = xlContinuous
+        .Weight = xlThin
+        .colorIndex = xlAutomatic
+    End With
+    
     ' Apply direct container background if needed
     If isDirectContainer Then
-        ' Apply light background color to the entire row section
-        Dim bgRange As Range
-        Set bgRange = ws.Range(ws.Cells(row, col), ws.Cells(row + 2, col + 2))
-        bgRange.Interior.Color = RGB(240, 240, 255) ' Light blue background
+        ' Apply the unique background color for this direct tour if provided
+        If directTourColor <> -1 Then
+            ' Use the unique color for this direct tour
+            tourFieldRange.Interior.Color = directTourColor
+        Else
+            ' Fallback to default light blue background
+            tourFieldRange.Interior.Color = RGB(240, 240, 255)
+        End If
     End If
     
-    ' Format LLnr (tour number) with custom formatting
+    ' Format LLnr (tour number) with custom formatting only if it's a match
     With ws.Cells(row + 1, col)
         .NumberFormat = "@" ' Text format
         
-        ' Apply color highlighting for matching LLnr numbers if provided
-        If llnrColor <> -1 Then
+        ' Only apply special formatting for matching LLnr numbers
+        If llnrColor <> -1 And llnrMatch <> "" Then
             .Interior.Color = llnrColor
-        End If
-    End With
-    
-    ' Format worker numbers
-    With ws.Cells(row + 2, col + 2)
-        ' If workers is less than 2, make it red
-        If IsNumeric(workers) Then
-            If CInt(workers) < 2 Then
-                .Font.Color = RGB(255, 0, 0) ' Red
-                .Font.Bold = True
-            End If
+            
+            ' Add border to make match more obvious
+            .Borders.LineStyle = xlContinuous
+            .Borders.Weight = xlMedium
+            .Borders.Color = RGB(0, 0, 0) ' Black border
+            
+            ' Make the text bold to emphasize matched LLnr
+            .Font.Bold = True
         End If
     End With
     
@@ -941,35 +1234,41 @@ Sub CopyTourToDestination(ws As Worksheet, row As Integer, col As Integer, tourN
     ' Format the entire tour name cell with center alignment
     nameCell.HorizontalAlignment = xlCenter
     
-    ' Check if the cell contains "(Noch Platz)"
-    If InStr(nameCell.Value, "(Noch Platz)") > 0 Then
+    ' Special handling for "(Noch Platz)" text
+    If InStr(tourName, "(Noch Platz)") > 0 Then
+        ' Clear any previous value
+        nameCell.Value = ""
+        
+        ' Get the parts
         Dim regularPart As String
-        Dim nochPlatzStart As Integer
+        Dim nochPlatzPart As String
         
-        nochPlatzStart = InStr(nameCell.Value, "(Noch Platz)")
-        regularPart = Left(nameCell.Value, nochPlatzStart - 1)
+        nochPlatzPart = "(Noch Platz)"
+        regularPart = Replace(tourName, nochPlatzPart, "")
         
-        ' Set the cell to just the regular part first
+        ' Set the regular part first
         nameCell.Value = regularPart
         
-        ' Then add the "(Noch Platz)" as red and bold text
-        nameCell.Characters(Start:=Len(regularPart) + 1, Length:=12).Text = "(Noch Platz)"
+        ' Add the Noch Platz part with specific formatting
+        nameCell.Characters(Start:=Len(regularPart) + 1, Length:=12).Text = nochPlatzPart
         
+        ' Format just this part
         With nameCell.Characters(Start:=Len(regularPart) + 1, Length:=12).Font
             .Bold = True
             .Color = RGB(255, 0, 0) ' Red
         End With
+    Else
+        ' Regular name without special formatting
+        nameCell.Value = tourName
     End If
     
     ' If we have WAB numbers for this tour, place them in the yellow box
     If wabNumbers <> "" And wabCount > 0 Then
         ' Choose correct placement based on your spreadsheet structure
-        ' Based on your screenshot, it appears the WAB numbers should go in a yellow box
         Dim wabCell As Range
         
         ' Choose the correct position based on your images
         Set wabCell = ws.Cells(row + 1, col + 2)
-        
         
         ' Place WAB number in the yellow box
         wabCell.Value = wabNumbers
@@ -984,14 +1283,26 @@ Sub CopyTourToDestination(ws As Worksheet, row As Integer, col As Integer, tourN
             .Borders.Color = RGB(0, 0, 0) ' Black border
         End With
         
-        ' Set tour name in first column
-        ws.Cells(row, col).Value = tourName
+        ' Set tour name in first column if it was lost due to WAB cell
+        If nameCell.Value = "" Then
+            nameCell.Value = tourName
+            
+            ' Reapply Noch Platz formatting if needed
+            If InStr(tourName, "(Noch Platz)") > 0 Then
+                regularPart = Replace(tourName, "(Noch Platz)", "")
+                nameCell.Value = regularPart
+                nameCell.Characters(Start:=Len(regularPart) + 1, Length:=12).Text = "(Noch Platz)"
+                With nameCell.Characters(Start:=Len(regularPart) + 1, Length:=12).Font
+                    .Bold = True
+                    .Color = RGB(255, 0, 0) ' Red
+                End With
+            End If
+        End If
         
-        ' Remerge the cells on either side, skipping the WAB cell
+        ' Format the individual cells correctly
         On Error Resume Next
-        ' Don't merge them - just format them individually
-        ws.Cells(row, col).HorizontalAlignment = xlLeft
-        ws.Cells(row, col + 2).HorizontalAlignment = xlLeft
+        ws.Cells(row, col).HorizontalAlignment = xlCenter
+        ws.Cells(row, col + 2).HorizontalAlignment = xlCenter
         On Error GoTo 0
     End If
 End Sub
@@ -1069,66 +1380,6 @@ Function GetWabCount(cell As Range) As Integer
             ' Default to 1 for any other non-empty cell
             GetWabCount = 1
         End If
-    End If
-End Function
-
-' Function to process LLnr and assign colors to matching numbers
-Function ProcessLLnr(llnrText As String, llnrDict As Object, ByRef colorIndex As Integer) As Long
-    ' Default color (none)
-    ProcessLLnr = -1
-    
-    ' If empty, return default
-    If Trim(llnrText) = "" Then Exit Function
-    
-    ' Split the LLnr by possible separators
-    Dim llnrParts As Variant
-    ' Replace all possible separators with space
-    llnrText = Replace(llnrText, "+", " ")
-    llnrText = Replace(llnrText, ",", " ")
-    llnrText = Replace(llnrText, ";", " ")
-    llnrText = Replace(llnrText, "-", " ")
-    
-    ' Clean up multiple spaces
-    Do While InStr(llnrText, "  ") > 0
-        llnrText = Replace(llnrText, "  ", " ")
-    Loop
-    
-    llnrParts = Split(Trim(llnrText), " ")
-    
-    ' Check each 5-digit number
-    Dim i As Integer, j As Integer
-    Dim matchFound As Boolean
-    matchFound = False
-    
-    ' First check if any part matches an existing key
-    For i = 0 To UBound(llnrParts)
-        If Len(Trim(llnrParts(i))) = 5 And IsNumeric(Trim(llnrParts(i))) Then
-            If llnrDict.Exists(Trim(llnrParts(i))) Then
-                ' Match found - use existing color
-                ProcessLLnr = llnrDict(Trim(llnrParts(i)))
-                matchFound = True
-                Exit For
-            End If
-        End If
-    Next i
-    
-    ' If no match found, assign a new color and add all parts to dictionary
-    If Not matchFound Then
-        ' Get a new color
-        Dim newColor As Long
-        newColor = GetNextColor(colorIndex)
-        colorIndex = colorIndex + 1
-        
-        ' Add all parts to dictionary with this color
-        For i = 0 To UBound(llnrParts)
-            If Len(Trim(llnrParts(i))) = 5 And IsNumeric(Trim(llnrParts(i))) Then
-                If Not llnrDict.Exists(Trim(llnrParts(i))) Then
-                    llnrDict.Add Trim(llnrParts(i)), newColor
-                End If
-            End If
-        Next i
-        
-        ProcessLLnr = newColor
     End If
 End Function
 
