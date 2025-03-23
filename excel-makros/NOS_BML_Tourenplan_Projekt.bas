@@ -249,7 +249,7 @@ Function FindLatestFileForKW(kwNumber As Integer, ByRef latestFile As String, By
     
     ' File pattern to search for
     Dim filePattern As String
-    filePattern = "NOS_TK_*_KW" & kwNumber & "_*.xlsx"
+    filePattern = "NOS_TK_*_KW" & kwNumber & "_*.xlsm"
     
     ' Initialize variables
     Dim latestDate As Date
@@ -265,10 +265,10 @@ Function FindLatestFileForKW(kwNumber As Integer, ByRef latestFile As String, By
     ' Process all files matching the pattern
     Do While fileName <> ""
         ' Parse file name to extract username and timestamp
-        ' Expected format: NOS_TK_USERNAME_KW##_DD_MM_HH_MM.xlsx
+        ' Expected format: NOS_TK_USERNAME_KW##_DD_MM_HH_MM.xlsm
         
         Dim fileParts As Variant
-        fileParts = Split(Replace(fileName, ".xlsx", ""), "_")
+        fileParts = Split(Replace(fileName, ".xlsm", ""), "_")
         
         If UBound(fileParts) >= 6 Then
             ' Extract user name (between NOS_TK_ and _KW)
@@ -309,19 +309,31 @@ Function LoadDataFromFile(filePath As String, kwNumber As Integer, userName As S
     ' Load data from an existing file for the selected KW
     On Error GoTo ErrorHandler
     
-    ' Store the current workbook reference
+    ' Declare all variables
     Dim currentWorkbook As Workbook
+    Dim sourceWorkbook As Workbook
+    Dim kwDate As Date
+    Dim sourceSheet As Worksheet
+    Dim destSheet As Worksheet
+    Dim colSets As Variant
+    Dim day As Integer
+    Dim cols As Variant
+    Dim ws As Worksheet
+    Dim i As Long, j As Long
+    Dim rng As Range
+    
+    ' Optimize performance
+    Application.ScreenUpdating = False
+    Application.EnableEvents = False
+    Application.Calculation = xlCalculationManual
+    
+    ' Store the current workbook reference
     Set currentWorkbook = ThisWorkbook
     
-    ' Open the source workbook in read-only mode
-    Dim sourceWorkbook As Workbook
-    Set sourceWorkbook = Workbooks.Open(filePath, ReadOnly:=True)
-    
-    ' Turn off screen updating to make the process smoother
-    Application.ScreenUpdating = False
+    ' Open the source workbook in read-only mode with UpdateLinks:=False
+    Set sourceWorkbook = Workbooks.Open(filePath, ReadOnly:=True, UpdateLinks:=False)
     
     ' Get the date for this KW
-    Dim kwDate As Date
     kwDate = GetDateForKW2025(kwNumber)
     
     ' Update current workbook with the KW date
@@ -334,18 +346,10 @@ Function LoadDataFromFile(filePath As String, kwNumber As Integer, userName As S
                                   Format(kwDate + 4, "dd.mm.yyyy") & ")" & _
                                   " [" & userName & ", " & timeStamp & "]"
     
-    ' Now copy data from source to current workbook
-    
-    ' 1. First clear existing data
+    ' Clear existing data
     ClearAllData
     
-    ' 2. Copy main sheet data from source to destination
-    ' Main NOS_Tourenkonzept sheet
-    Dim sourceSheet As Worksheet
-    Dim destSheet As Worksheet
-    
     ' Copy data for each day of the week
-    Dim colSets As Variant
     colSets = Array(Array("B", "C", "E"), Array("F", "G", "I"), Array("J", "K", "M"), _
                     Array("N", "O", "Q"), Array("R", "S", "U"))
     
@@ -353,49 +357,41 @@ Function LoadDataFromFile(filePath As String, kwNumber As Integer, userName As S
     Set sourceSheet = sourceWorkbook.Worksheets("NOS_Tourenkonzept")
     Set destSheet = currentWorkbook.Worksheets("NOS_Tourenkonzept")
     
-    ' Copy data for each day
+    ' More efficient data transfer using direct value assignment
     For day = 0 To 4
-        Dim cols As Variant
         cols = colSets(day)
         
-        ' Tour data column (B, F, J, N, R)
-        sourceSheet.Range(cols(0) & "2:" & cols(0) & "100").Copy
-        destSheet.Range(cols(0) & "2").PasteSpecial xlPasteAll
+        ' Transfer values directly instead of Copy/Paste
+        destSheet.Range(cols(0) & "2:" & cols(0) & "100").Value = sourceSheet.Range(cols(0) & "2:" & cols(0) & "100").Value
+        destSheet.Range(cols(1) & "2:" & cols(1) & "100").Value = sourceSheet.Range(cols(1) & "2:" & cols(1) & "100").Value
         
-        ' Tour name column (C, G, K, O, S)
-        sourceSheet.Range(cols(1) & "2:" & cols(1) & "100").Copy
-        destSheet.Range(cols(1) & "2").PasteSpecial xlPasteAll
-        
-        ' Checkbox column (E, I, M, Q, U)
-        sourceSheet.Range(cols(2) & "2:" & cols(2) & "100").Copy
-        destSheet.Range(cols(2) & "2").PasteSpecial xlPasteAll
+        ' For checkboxes (because they may be Boolean values), we need special handling
+        For i = 2 To 100
+            If Not IsEmpty(sourceSheet.Range(cols(2) & i).Value) Then
+                destSheet.Range(cols(2) & i).Value = sourceSheet.Range(cols(2) & i).Value
+            End If
+        Next i
     Next day
     
-    ' 3. Copy data for each area-specific sheet
-    Dim ws As Worksheet
+    ' Copy data for each area-specific sheet more efficiently
     For Each ws In sourceWorkbook.Worksheets
         If ws.Name Like "Tourenplan_BML_*" Then
             ' Check if the destination has this sheet
             On Error Resume Next
             Set destSheet = currentWorkbook.Worksheets(ws.Name)
-            On Error GoTo 0
+            On Error GoTo ErrorHandler
             
             If Not destSheet Is Nothing Then
-                ' Copy tour data
-                ws.Range("B3:S33").Copy
-                destSheet.Range("B3").PasteSpecial xlPasteAll
+                ' Transfer values directly
+                destSheet.Range("B3:S33").Value = ws.Range("B3:S33").Value
+                destSheet.Range("B35:S38").Value = ws.Range("B35:S38").Value
+                destSheet.Range("B55:S72").Value = ws.Range("B55:S72").Value
+                destSheet.Range("B74:S81").Value = ws.Range("B74:S81").Value
                 
-                ' Copy WAB fields
-                ws.Range("B35:S38").Copy
-                destSheet.Range("B35").PasteSpecial xlPasteAll
-                
-                ' Copy direct container data
-                ws.Range("B55:S72").Copy
-                destSheet.Range("B55").PasteSpecial xlPasteAll
-                
-                ' Copy Lager container data
-                ws.Range("B74:S81").Copy
-                destSheet.Range("B74").PasteSpecial xlPasteAll
+                ' Transfer formatting (colors) for direct containers and special cells
+                TransferCellFormatting ws, destSheet, "B3:S33"
+                TransferCellFormatting ws, destSheet, "B55:S72"
+                TransferCellFormatting ws, destSheet, "B74:S81"
             End If
         End If
     Next ws
@@ -403,11 +399,10 @@ Function LoadDataFromFile(filePath As String, kwNumber As Integer, userName As S
     ' Close the source workbook without saving
     sourceWorkbook.Close SaveChanges:=False
     
-    ' Clear clipboard
-    Application.CutCopyMode = False
-    
-    ' Turn screen updating back on
+    ' Restore settings
     Application.ScreenUpdating = True
+    Application.EnableEvents = True
+    Application.Calculation = xlCalculationAutomatic
     
     LoadDataFromFile = True
     Exit Function
@@ -421,12 +416,78 @@ ErrorHandler:
         sourceWorkbook.Close SaveChanges:=False
     End If
     
-    ' Turn screen updating back on
+    ' Restore settings
     Application.ScreenUpdating = True
-    Application.CutCopyMode = False
+    Application.EnableEvents = True
+    Application.Calculation = xlCalculationAutomatic
     
+    MsgBox "Fehler beim Laden der Daten: " & Err.Description, vbExclamation
     LoadDataFromFile = False
 End Function
+
+' Helper function to transfer cell formatting (colors, etc.)
+Sub TransferCellFormatting(sourceWs As Worksheet, destWs As Worksheet, rangeAddress As String)
+    Dim sourceCell As Range, destCell As Range
+    Dim sourceRange As Range, destRange As Range
+    
+    Set sourceRange = sourceWs.Range(rangeAddress)
+    Set destRange = destWs.Range(rangeAddress)
+    
+    ' Transfer interior colors and font formatting
+    For Each sourceCell In sourceRange
+        Set destCell = destRange.Cells(sourceCell.row - sourceRange.row + 1, sourceCell.Column - sourceRange.Column + 1)
+        
+        ' Transfer interior color
+        If sourceCell.Interior.colorIndex <> xlNone Then
+            destCell.Interior.Color = sourceCell.Interior.Color
+        End If
+        
+        ' Transfer font bold
+        If sourceCell.Font.Bold Then
+            destCell.Font.Bold = True
+        End If
+        
+        ' Transfer font color
+        If sourceCell.Font.colorIndex <> xlAutomatic Then
+            destCell.Font.Color = sourceCell.Font.Color
+        End If
+        
+        ' Transfer borders
+        If sourceCell.Borders.count > 0 Then
+            With sourceCell.Borders(xlEdgeLeft)
+                If .LineStyle <> xlNone Then
+                    destCell.Borders(xlEdgeLeft).LineStyle = .LineStyle
+                    destCell.Borders(xlEdgeLeft).Weight = .Weight
+                    destCell.Borders(xlEdgeLeft).colorIndex = .colorIndex
+                End If
+            End With
+            
+            With sourceCell.Borders(xlEdgeTop)
+                If .LineStyle <> xlNone Then
+                    destCell.Borders(xlEdgeTop).LineStyle = .LineStyle
+                    destCell.Borders(xlEdgeTop).Weight = .Weight
+                    destCell.Borders(xlEdgeTop).colorIndex = .colorIndex
+                End If
+            End With
+            
+            With sourceCell.Borders(xlEdgeRight)
+                If .LineStyle <> xlNone Then
+                    destCell.Borders(xlEdgeRight).LineStyle = .LineStyle
+                    destCell.Borders(xlEdgeRight).Weight = .Weight
+                    destCell.Borders(xlEdgeRight).colorIndex = .colorIndex
+                End If
+            End With
+            
+            With sourceCell.Borders(xlEdgeBottom)
+                If .LineStyle <> xlNone Then
+                    destCell.Borders(xlEdgeBottom).LineStyle = .LineStyle
+                    destCell.Borders(xlEdgeBottom).Weight = .Weight
+                    destCell.Borders(xlEdgeBottom).colorIndex = .colorIndex
+                End If
+            End With
+        End If
+    Next sourceCell
+End Sub
 
 Function GetDateForKW2025(kwNumber As Integer) As Date
     ' Returns the Monday date for a given KW in 2025
@@ -481,7 +542,7 @@ Function SaveWorkbookToSpecialFolder(currentKW As Integer) As Boolean
     
     ' Setup the target folder path with the specified OneDrive path
     Dim targetFolder As String
-    targetFolder = userProfile & "\Documents\bgo_montage_und_logistik\OneDrive - BGO Holding GmbH\BML_Dispo - Planung NOS - Planung NOS\10_Excel_Wocheneinteilung_Intern_NOS\Autosave"
+    targetFolder = userProfile & "\OneDrive - BGO Holding GmbH\BML_Dispo - Planung NOS - Planung NOS\10_Excel_Wocheneinteilung_Intern_NOS\Autosave"
     
     ' Create the folder if it doesn't exist
     On Error Resume Next
@@ -496,7 +557,7 @@ Function SaveWorkbookToSpecialFolder(currentKW As Integer) As Boolean
     
     ' Generate filename with KW included
     Dim newFileName As String
-    newFileName = targetFolder & "\NOS_TK_" & userName & "_KW" & currentKW & "_" & timeStamp & ".xlsx"
+    newFileName = targetFolder & "\NOS_TK_" & userName & "_KW" & currentKW & "_" & timeStamp & ".xlsm"
     
     ' Use the simple SaveCopyAs approach which is more reliable
     ThisWorkbook.SaveCopyAs newFileName
