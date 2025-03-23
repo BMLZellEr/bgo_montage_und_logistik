@@ -80,7 +80,8 @@
 
 **[Klicke Hier](https://kingslayer9988.github.io/austria-post-and-area-code/) für Interaktive Karte**
 
-![grafik](https://github.com/user-attachments/assets/5b77eb46-1057-4d71-924f-b7bed5e7c9ee)
+**[![Interactive Dispatcher Map](https://github.com/BMLZellEr/bgo_montage_und_logistik/raw/main/austria_cargo_zone_map/Screenshot_Map.png)](https://bmlzeller.github.io/bgo_montage_und_logistik/austria_cargo_zone_map/index.html)**
+
 
 
 | Zone | SC | PLZ |
