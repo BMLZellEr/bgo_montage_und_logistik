@@ -168,12 +168,6 @@ Danke im Voraus.
 ## 🍳 L&M Küchennmontagen 
 - Heinz schickt => Deckblatt, Liefervorschläge, Pläne** => L&M => Stops, Zeiten => kommen zurück und **wir Avisieren!**
 
-| Kennzeichen | Fahrzeugklasse (3,5t/7,5t/LKW) | max. Volumen(m³) | max. Gewicht(kg) | Fahrzeug(Sprinter) |
-| --- | --- | --- | --- | --- |
-| **WY-742AT** | **7,5t** | ~15m³ | ~1500kg | Iveco Eurocargo |
-| **WY-871AW** | **3,5t** | X | ~300kg | Fiat Ducato |
-
-
 ## Auftragsnummern => Ersten 2 Ziffern sind Geschäftstelle XX/XXXXXX/00/00
 | NUMMER | ORT |
 | --- | --- |
@@ -196,7 +190,19 @@ Danke im Voraus.
 - trotzdem laut altem Datum durchgeführt & **Auf WAB verladen.** (Genug Container vorhanden)
 - **Bei Kleinigkeiten => verschieben wir machmal die Produktion**
 
-## 🚛 Fuhpark & Personal
+## 🚛 Fuhpark
+
+| Kennzeichen | Fahrzeugklasse (3,5t/7,5t/LKW) | max. Volumen(m³) | max. Gewicht(kg) | Fahrzeug Modell | Kommentar |
+| --- | --- | --- | --- | --- | --- |
+| **WY-871AW** | **3,5t** | X | ~300kg | Fiat Ducato | |
+| **WY-742AT** | **7,5t** | ~15m³ | ~1500kg | Iveco Eurocargo | |
+| **WY-307AX** | **LKW & Hänger** | 30m³ | X | LKW | |
+| **WY-308AX** | **LKW & Hänger** | 30m³ | X | LKW | |
+| **WY-450AX** | **LKW & Hänger** | 30m³ | X | LKW | |
+| **WY-659AN** | **LKW & Hänger** | 30m³ | X | LKW | |
+| **WY-741AT** | **LKW & Hänger** | 30m³ | X | LKW | |
+
+
 - Innsbruck = Spedition_Kusztrich / Heinz nochmal klären
     - Deutschland => Weiß, Nuri(Kameen) => Mit Silke klären 🛑
     - Neudörfl = Spedition_Kusztrich / ÜBEX (Bei viel Auslastung)
@@ -216,7 +222,9 @@ Danke im Voraus.
 - 💡 Excel-Listen mit Helmuth und Heinz müssen eingeführt werden => Teams & Excel vorbereiten => ALMOST DONE
 - 💡 PDF-Parser und Crap-Scripts für automation seems very powerful at NOS
 
-## 17.03.2025 Start Erik: Innsbruck in Cargo-Support => Abgabewoche ist die KW_15 => Heinz als SC-Leiter
+
+
+## 17.03.2025 Start Erik: Innsbruck in Cargo-Support Abgabewoche => KW15
 
 - **Cargo Support NOS💚-Style**
 - **Akutelle Aufgabe** nur **Touren** in **Cargo-Support zusammenstellen & 📗 Avisieren & 🔄 Nachplanen**
