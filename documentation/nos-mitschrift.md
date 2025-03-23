@@ -26,19 +26,17 @@
 - **📗 Aviso-Datum => auf 3h Zeit-Fenster setzten!** => **MÖGLICH** => Siehe **Test-Mail**
 - **🛑 Not Tested but told not working:** => **Kann 2020 geteilte WAB-Aufträge übernehmen ?**
 
-## 📦 Einlastung der Produktion (Status 200) => Liefervorschlag
-- **Auftrag Liefertermin & Prod_Einlastung**
-- **Einlastungs_Tag (Status 200) => max. -1T vor Liefertermin**
+## 📦 Einlastung der Produktion (Status 200) => Liefervorschlag Druck => Liefertermin festgelget CS
+- **Gewählter Liefer-Termin_System (Status 200) => max. -1T vor Liefertermin**
 - **Liefervorschläge werden anschließend Ausgedrückt => täglich bis max. 11:00Uhr**
 - **Reklas kommen rein => System schlägt nächstmöglich vor => händisch vorgerückt**
 - **Rückstände werden von Alex notiert. = Keine Möglichkeit im 2020**
-- **Vergleich von Helmuts Liste & Kapazitätreports => Entschung für neues Einlastungdatum**
+- **Vergleich NOS_Tourenkonzept & Kapazitätreports => Entscheidung für neuen Liefertermin**
 - **Reklas wird nach Dispo gerichtet.**
 - **2020 gibt selbe Auftragsbestätigung wie Cargo-Support** => **Nachbessern im System => Falscheingabe des Verkäfers.**
 - **Alex retuniert => Mails an Verkäufer.**
 - **Täglich immer bis spät. 11:00 Uhr**
 - **Täglich anschließend dann druck der Ladelisten** => **Status Ändert sich nicht.**
-
 - **Liefervorschläge Deckblätter** nach Touren sortiert.
 - **Deckblatt vonm Heinz == N=NUR Fahrer / J=MIT MONTEUR**
 - **Heinz-Fach => Alles nicht vermekrte Rückstände oder auf Plant SC-Leiter**
@@ -53,7 +51,7 @@
 | **ABH Kundenamen TT.MM** | **ABH $KUNDE $ORT $WT(TT)** | Selbstabholungs-Tour am Donnerstag |
 | **Postversand TT.MM** | **POSTVERSAND $ORT $KW** | Alle Postversand ohne Fixtermin in KW_12 |
 | **Kundenname KundenOrt TT.MM** | **$KUNDE $ORT $WT(TT)** | Direkt-LKW Tour zur Baustelle am Donnerstag |
-| **SC TIROL WAB TT.MM** | **SC WAB für $Fahrzeuge Touren $WT(TT)** | Lager-WAB Mittwoch <br> für LKW & 7,5t & 3,5t Touren <br> "RAMPE" in "Bemerkung Transport" |
+| **SC INNSBRUCK WAB TT.MM** | **SC WAB für $Fahrzeuge Touren $WT(TT)** | Lager-WAB Mittwoch <br> für LKW & 7,5t & 3,5t Touren <br> "RAMPE" in "Bemerkung Transport" |
 | **SC 7,5t Tour Innsbruck - Telfs TT.MM** | **SC $Fahrzeuge Tour $ORT_S $ORT_E $WT(TT)** | Untertour 7,5t Fahrzeug <br> Laden von Lager-WAB |
 | **SC LKW Tour Fügen - Jenbach TT.MM** | **SC $Fahrzeuge Tour $ORT_S $ORT_E $WT(TT)**  | Untertour LKW Fahrzeug <br> Laden von Lager-WAB|
 | **Plant SC Leiter / 6 Kunden** |  | Unter-Tour mit 6 Kunden <br> die SC-Leiter Plant |
