@@ -42,22 +42,6 @@ Sub SetupGebietDropdown()
     ActiveSheet.Range("V1").Value = "Gebiet:"
 End Sub
 
-Sub SetupKWSwitcher()
-    ' Create a KW switcher control (just a button, no dropdown)
-    
-    ' Add the button
-    On Error Resume Next
-    Dim btnKW As Button
-    Set btnKW = ActiveSheet.Buttons.Add(ActiveSheet.Range("X1").Left - 80, _
-                                       ActiveSheet.Range("X1").Top, 80, 20)
-    With btnKW
-        .Caption = "KW wechseln"
-        .OnAction = "SwitchKW"
-        .Name = "btnSwitchKW"
-    End With
-    On Error GoTo 0
-End Sub
-
 Sub AddActionButtons()
     ' Add all action buttons
     
@@ -132,14 +116,30 @@ Sub PrintWorksheet()
     currentSheet.Activate
 End Sub
 
+Sub SetupKWSwitcher()
+    ' Create a KW switcher control (just a button, no dropdown)
+    
+    ' Add the button
+    On Error Resume Next
+    Dim btnKW As Button
+    Set btnKW = ActiveSheet.Buttons.Add(ActiveSheet.Range("X1").Left - 80, _
+                                       ActiveSheet.Range("X1").Top, 80, 20)
+    With btnKW
+        .Caption = "KW wechseln"
+        .OnAction = "SwitchKW"
+        .Name = "btnSwitchKW"
+    End With
+    On Error GoTo 0
+End Sub
+
 Sub SwitchKW()
-    ' Simple KW switcher using fixed 2025 dates
+    ' Enhanced KW switcher with auto-loading functionality
     Dim kwInput As String
     Dim kwNumber As Integer
     Dim firstMonday As Date
     Dim currentKW As Integer
     
-    ' Get the current KW based on B1 (corrected from B2)
+    ' Get the current KW based on B1
     On Error Resume Next
     If IsDate(ActiveSheet.Range("B1").Value) Then
         ' Get KW based on the date in B1
@@ -177,14 +177,46 @@ Sub SwitchKW()
         Exit Sub
     End If
     
-    ' Get the Monday date for the selected KW from our fixed calendar
-    firstMonday = GetDateForKW2025(kwNumber)
-    
-    ' Save the current file before switching
+    ' First, save the current file
     If SaveWorkbookToSpecialFolder(currentKW) Then
         ' Successfully saved, proceed with switch
         
-        ' First clear all data before changing the date
+        ' Get the Monday date for the selected KW from our fixed calendar
+        firstMonday = GetDateForKW2025(kwNumber)
+        
+        ' Check if there are existing files for the requested KW
+        Dim latestFile As String
+        Dim latestUser As String
+        Dim latestTimestamp As String
+        
+        If FindLatestFileForKW(kwNumber, latestFile, latestUser, latestTimestamp) Then
+            ' Found a file for this KW, ask if user wants to load it
+            Dim loadResponse As VbMsgBoxResult
+            loadResponse = MsgBox("Für KW" & kwNumber & " wurde ein bestehender Datenstand gefunden:" & vbCrLf & _
+                                 "Benutzer: " & latestUser & vbCrLf & _
+                                 "Gespeichert am: " & latestTimestamp & vbCrLf & vbCrLf & _
+                                 "Möchten Sie diese Daten laden?", _
+                                 vbYesNo + vbQuestion, "Daten für KW" & kwNumber & " gefunden")
+                                 
+            If loadResponse = vbYes Then
+                ' User wants to load existing data
+                If LoadDataFromFile(latestFile, kwNumber, latestUser, latestTimestamp) Then
+                    ' Successfully loaded
+                    MsgBox "Daten für KW" & kwNumber & " wurden erfolgreich geladen." & vbCrLf & _
+                           "Benutzer: " & latestUser & vbCrLf & _
+                           "Gespeichert am: " & latestTimestamp, vbInformation
+                    Exit Sub
+                Else
+                    ' Failed to load
+                    MsgBox "Die Daten konnten nicht geladen werden. Eine neue KW" & kwNumber & " wird erstellt.", vbExclamation
+                End If
+            End If
+            ' If No was clicked or loading failed, continue with clearing and creating new
+        End If
+        
+        ' If no existing files or user chose not to load, clear and create new
+        
+        ' Clear all data before changing the date
         ClearAllData
         
         ' Now update B1 with the first Monday date of selected KW
@@ -202,6 +234,199 @@ Sub SwitchKW()
         MsgBox "KW-Wechsel abgebrochen, da die aktuelle Datei nicht gespeichert werden konnte.", vbExclamation
     End If
 End Sub
+
+Function FindLatestFileForKW(kwNumber As Integer, ByRef latestFile As String, ByRef latestUser As String, ByRef latestTimestamp As String) As Boolean
+    ' Find the latest file for a specific KW in the autosave folder
+    On Error Resume Next
+    
+    ' Get the autosave folder path
+    Dim userProfile As String
+    userProfile = Environ("USERPROFILE")
+    
+    ' Setup the target folder path with the specified OneDrive path
+    Dim targetFolder As String
+    targetFolder = userProfile & "\OneDrive - BGO Holding GmbH\BML_Dispo - Planung NOS - Planung NOS\10_Excel_Wocheneinteilung_Intern_NOS\Autosave"
+    
+    ' File pattern to search for
+    Dim filePattern As String
+    filePattern = "NOS_TK_*_KW" & kwNumber & "_*.xlsx"
+    
+    ' Initialize variables
+    Dim latestDate As Date
+    latestDate = DateSerial(1900, 1, 1) ' Very old date to start with
+    latestFile = ""
+    latestUser = ""
+    latestTimestamp = ""
+    
+    ' Search for all matching files
+    Dim fileName As String
+    fileName = Dir(targetFolder & "\" & filePattern)
+    
+    ' Process all files matching the pattern
+    Do While fileName <> ""
+        ' Parse file name to extract username and timestamp
+        ' Expected format: NOS_TK_USERNAME_KW##_DD_MM_HH_MM.xlsx
+        
+        Dim fileParts As Variant
+        fileParts = Split(Replace(fileName, ".xlsx", ""), "_")
+        
+        If UBound(fileParts) >= 6 Then
+            ' Extract user name (between NOS_TK_ and _KW)
+            Dim userNamePart As String
+            userNamePart = fileParts(2)
+            
+            ' Extract timestamp parts
+            Dim day As String, month As String, hour As String, minute As String
+            day = fileParts(4)
+            month = fileParts(5)
+            hour = fileParts(6)
+            minute = fileParts(7)
+            
+            ' Create a date object for comparison
+            Dim fileDate As Date
+            On Error Resume Next
+            fileDate = DateSerial(2025, CInt(month), CInt(day)) + TimeSerial(CInt(hour), CInt(minute), 0)
+            On Error GoTo 0
+            
+            ' If this file is newer than our current latest, update it
+            If fileDate > latestDate Then
+                latestDate = fileDate
+                latestFile = targetFolder & "\" & fileName
+                latestUser = userNamePart
+                latestTimestamp = Format(fileDate, "dd.mm.yyyy HH:mm")
+            End If
+        End If
+        
+        ' Get the next file
+        fileName = Dir()
+    Loop
+    
+    ' Return True if we found a file, False otherwise
+    FindLatestFileForKW = (latestFile <> "")
+End Function
+
+Function LoadDataFromFile(filePath As String, kwNumber As Integer, userName As String, timeStamp As String) As Boolean
+    ' Load data from an existing file for the selected KW
+    On Error GoTo ErrorHandler
+    
+    ' Store the current workbook reference
+    Dim currentWorkbook As Workbook
+    Set currentWorkbook = ThisWorkbook
+    
+    ' Open the source workbook in read-only mode
+    Dim sourceWorkbook As Workbook
+    Set sourceWorkbook = Workbooks.Open(filePath, ReadOnly:=True)
+    
+    ' Turn off screen updating to make the process smoother
+    Application.ScreenUpdating = False
+    
+    ' Get the date for this KW
+    Dim kwDate As Date
+    kwDate = GetDateForKW2025(kwNumber)
+    
+    ' Update current workbook with the KW date
+    currentWorkbook.Activate
+    ActiveSheet.Range("B1").Value = kwDate
+    
+    ' Update the KW label in the sheet
+    ActiveSheet.Range("X1").Value = "Tourenplan für KW" & kwNumber & " (" & _
+                                  Format(kwDate, "dd.mm.yyyy") & " - " & _
+                                  Format(kwDate + 4, "dd.mm.yyyy") & ")" & _
+                                  " [" & userName & ", " & timeStamp & "]"
+    
+    ' Now copy data from source to current workbook
+    
+    ' 1. First clear existing data
+    ClearAllData
+    
+    ' 2. Copy main sheet data from source to destination
+    ' Main NOS_Tourenkonzept sheet
+    Dim sourceSheet As Worksheet
+    Dim destSheet As Worksheet
+    
+    ' Copy data for each day of the week
+    Dim colSets As Variant
+    colSets = Array(Array("B", "C", "E"), Array("F", "G", "I"), Array("J", "K", "M"), _
+                    Array("N", "O", "Q"), Array("R", "S", "U"))
+    
+    ' Get source and destination sheets
+    Set sourceSheet = sourceWorkbook.Worksheets("NOS_Tourenkonzept")
+    Set destSheet = currentWorkbook.Worksheets("NOS_Tourenkonzept")
+    
+    ' Copy data for each day
+    For day = 0 To 4
+        Dim cols As Variant
+        cols = colSets(day)
+        
+        ' Tour data column (B, F, J, N, R)
+        sourceSheet.Range(cols(0) & "2:" & cols(0) & "100").Copy
+        destSheet.Range(cols(0) & "2").PasteSpecial xlPasteAll
+        
+        ' Tour name column (C, G, K, O, S)
+        sourceSheet.Range(cols(1) & "2:" & cols(1) & "100").Copy
+        destSheet.Range(cols(1) & "2").PasteSpecial xlPasteAll
+        
+        ' Checkbox column (E, I, M, Q, U)
+        sourceSheet.Range(cols(2) & "2:" & cols(2) & "100").Copy
+        destSheet.Range(cols(2) & "2").PasteSpecial xlPasteAll
+    Next day
+    
+    ' 3. Copy data for each area-specific sheet
+    Dim ws As Worksheet
+    For Each ws In sourceWorkbook.Worksheets
+        If ws.Name Like "Tourenplan_BML_*" Then
+            ' Check if the destination has this sheet
+            On Error Resume Next
+            Set destSheet = currentWorkbook.Worksheets(ws.Name)
+            On Error GoTo 0
+            
+            If Not destSheet Is Nothing Then
+                ' Copy tour data
+                ws.Range("B3:S33").Copy
+                destSheet.Range("B3").PasteSpecial xlPasteAll
+                
+                ' Copy WAB fields
+                ws.Range("B35:S38").Copy
+                destSheet.Range("B35").PasteSpecial xlPasteAll
+                
+                ' Copy direct container data
+                ws.Range("B55:S72").Copy
+                destSheet.Range("B55").PasteSpecial xlPasteAll
+                
+                ' Copy Lager container data
+                ws.Range("B74:S81").Copy
+                destSheet.Range("B74").PasteSpecial xlPasteAll
+            End If
+        End If
+    Next ws
+    
+    ' Close the source workbook without saving
+    sourceWorkbook.Close SaveChanges:=False
+    
+    ' Clear clipboard
+    Application.CutCopyMode = False
+    
+    ' Turn screen updating back on
+    Application.ScreenUpdating = True
+    
+    LoadDataFromFile = True
+    Exit Function
+    
+ErrorHandler:
+    ' Handle any errors
+    On Error Resume Next
+    
+    ' Make sure source workbook is closed
+    If Not sourceWorkbook Is Nothing Then
+        sourceWorkbook.Close SaveChanges:=False
+    End If
+    
+    ' Turn screen updating back on
+    Application.ScreenUpdating = True
+    Application.CutCopyMode = False
+    
+    LoadDataFromFile = False
+End Function
 
 Function GetDateForKW2025(kwNumber As Integer) As Date
     ' Returns the Monday date for a given KW in 2025
@@ -243,8 +468,9 @@ Function GetKW2025FromDate(targetDate As Date) As Integer
     GetKW2025FromDate = kwNumber
 End Function
 
+
 Function SaveWorkbookToSpecialFolder(currentKW As Integer) As Boolean
-    ' Save with shorter filename to OneDrive path
+    ' Enhanced save function that includes KW in the filename
     On Error GoTo ErrorHandler
     
     ' Get the current user's profile path and username
@@ -255,7 +481,7 @@ Function SaveWorkbookToSpecialFolder(currentKW As Integer) As Boolean
     
     ' Setup the target folder path with the specified OneDrive path
     Dim targetFolder As String
-    targetFolder = userProfile & "\OneDrive - BGO Holding GmbH\BML_Dispo - Planung NOS - Planung NOS\10_Excel_Wocheneinteilung_Intern_NOS\Autosave"
+    targetFolder = userProfile & "\Documents\bgo_montage_und_logistik\OneDrive - BGO Holding GmbH\BML_Dispo - Planung NOS - Planung NOS\10_Excel_Wocheneinteilung_Intern_NOS\Autosave"
     
     ' Create the folder if it doesn't exist
     On Error Resume Next
@@ -268,9 +494,9 @@ Function SaveWorkbookToSpecialFolder(currentKW As Integer) As Boolean
     Dim timeStamp As String
     timeStamp = Format(Now, "dd_MM_HH_mm")
     
-    ' Generate shorter filename with KW and username
+    ' Generate filename with KW included
     Dim newFileName As String
-    newFileName = targetFolder & "\NOS_TK_" & userName & "_" & timeStamp & ".xlsx"
+    newFileName = targetFolder & "\NOS_TK_" & userName & "_KW" & currentKW & "_" & timeStamp & ".xlsx"
     
     ' Use the simple SaveCopyAs approach which is more reliable
     ThisWorkbook.SaveCopyAs newFileName
