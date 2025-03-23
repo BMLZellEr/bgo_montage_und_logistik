@@ -168,22 +168,22 @@ Danke im Voraus.
 ## 🍳 L&M Küchennmontagen 
 - Heinz schickt => Deckblatt, Liefervorschläge, Pläne** => L&M => Stops, Zeiten => kommen zurück und **wir Avisieren!**
 
-## Auftragsnummern => Ersten 2 Ziffern sind Geschäftstelle XX/XXXXXX/00/00
-| NUMMER | ORT |
-| --- | --- |
-| **15** | **Innsbruck** |
-| **11** | **Wien** |
-| **12** | **Neudörfel** |
-| **13** | **Linz** |
-| **14** | **Salzburg** |
-| **16** | **Kärnten** |
-| **17** | **Graz** |
-| **18** | **Dornbirn** |
-| **43** | **Deutschland** |
-| **45** | **Budapest** |
-| **47** | **Bratislava** |
-| **10** | **Werk** |
-| **23** | **Händler** |
+## Auftragsnummern => Ersten 2 Ziffern sind Geschäftstelle GG/AAAAAA/00/00
+| Ausftragsnummer | WAB Nummern-Kreis | Geschäftstelle | Service-Center |  Kommentar |
+| --- | --- | --- | --- | --- |
+| **10** | **12** |  **Werk** | **WNeudorf** | |
+| **11** | **12** | **Wien** | **WNeudorf** | |
+| **12** | **12** | **Neudörfel** | **WNeudorf** | |
+| **13** | **13** | **Linz** | **Linz** | |
+| **14** | **13** | **Salzburg** | **Linz soon Salzburg** | |
+| **15** | **15** | **Tirol** | **Innsbruck** | |
+| **16** | **16** | **Kärnten** | **Klagenfurt** | |
+| **17** | **17** | **Steiermark** | **Graz** | |
+| **18** | **18** | **Vorarlberg** | **Dornbirn** | |
+| **23** | **Je nach Gebiet** | **Händler** | **Je nach Gebiet** | |
+| **43** | **43** | **Deutschland** | **Relogg Partner** | |
+| **45** | **45** | **Budapest** | **Export** | |
+| **47** | **45** | **Budapest** | **Export** | |
 
 ## Vorproduktion
 - Im Regel bei **📅 Terminverschiebungen durch kunden wird Prod.**
@@ -195,7 +195,7 @@ Danke im Voraus.
 | Kennzeichen | Fahrzeugklasse (3,5t/7,5t/LKW) | max. Volumen(m³) | max. Gewicht(kg) | Fahrzeug Modell | Kommentar |
 | --- | --- | --- | --- | --- | --- |
 | **WY-871AW** | **3,5t** | X | ~300kg | Fiat Ducato | |
-| **WY-742AT** | **7,5t** | ~15m³ | ~1500kg | Iveco Eurocargo | |
+| **WY-742AT** | **7,5t** | ~15m³ | ~1500kg | Iveco Eurocargo | SC WNeudorf ? |
 | **WY-307AX** | **LKW & Hänger** | 30m³ | X | LKW | |
 | **WY-308AX** | **LKW & Hänger** | 30m³ | X | LKW | |
 | **WY-450AX** | **LKW & Hänger** | 30m³ | X | LKW | |
