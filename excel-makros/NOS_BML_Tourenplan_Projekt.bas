@@ -10,6 +10,9 @@ Sub SetupMainControls()
     ' Add the additional buttons
     AddActionButtons
     
+    ' Add additional buttons
+    AddAdditionalButtons
+    
     MsgBox "Steuerelemente wurden erstellt. Klicken Sie auf 'KW wechseln' zum Ändern der Kalenderwoche."
 End Sub
 
@@ -88,6 +91,54 @@ Sub AddActionButtons()
     On Error GoTo 0
 End Sub
 
+Sub AddAdditionalButtons()
+    ' Add Save and Export buttons
+    
+    ' Save button
+    On Error Resume Next
+    Dim btnSave As Button
+    Set btnSave = ActiveSheet.Buttons.Add(ActiveSheet.Range("V1").Left, _
+                                          ActiveSheet.Range("V1").Top + 60, 120, 20)
+    With btnSave
+        .Caption = "Speichern"
+        .OnAction = "SaveCurrentPlan"
+        .Name = "btnSave"
+    End With
+    
+    ' Export to SC-Leiter button
+    Dim btnExport As Button
+    Set btnExport = ActiveSheet.Buttons.Add(ActiveSheet.Range("V1").Left + 130, _
+                                           ActiveSheet.Range("V1").Top + 60, 120, 20)
+    With btnExport
+        .Caption = "Export zu SC-Leiter"
+        .OnAction = "ExportToSCLeiter"
+        .Name = "btnExport"
+    End With
+    On Error GoTo 0
+End Sub
+
+Sub SaveCurrentPlan()
+    ' Get current KW from B1 date
+    Dim currentKW As Integer
+    
+    On Error Resume Next
+    If IsDate(ActiveSheet.Range("B1").Value) Then
+        ' Get KW based on the date in B1
+        currentKW = GetKW2025FromDate(CDate(ActiveSheet.Range("B1").Value))
+    Else
+        currentKW = GetKW2025FromDate(Date)
+    End If
+    On Error GoTo 0
+    
+    ' Call the existing save function
+    If SaveWorkbookToSpecialFolder(currentKW) Then
+        ' Successfully saved
+        ' MsgBox already displayed in the SaveWorkbookToSpecialFolder function
+    Else
+        MsgBox "Fehler beim Speichern der Datei.", vbExclamation
+    End If
+End Sub
+
 Sub PrintWorksheet()
     ' Print the NOS_Tourenkonzept_Print worksheet
     
@@ -115,6 +166,416 @@ Sub PrintWorksheet()
     ' Return to the original sheet
     currentSheet.Activate
 End Sub
+
+Sub ExportToSCLeiter()
+    ' Export the current tour plan to SC-Leiter folders
+    
+    ' Get current KW from B1 date
+    Dim currentKW As Integer
+    
+    On Error Resume Next
+    If IsDate(ActiveSheet.Range("B1").Value) Then
+        ' Get KW based on the date in B1
+        currentKW = GetKW2025FromDate(CDate(ActiveSheet.Range("B1").Value))
+    Else
+        currentKW = GetKW2025FromDate(Date)
+    End If
+    On Error GoTo 0
+    
+    ' Call the export function
+    If ExportCurrentPlanToSCLeiter(currentKW) Then
+        MsgBox "Export zu SC-Leiter abgeschlossen.", vbInformation
+    Else
+        MsgBox "Fehler beim Export zu SC-Leiter.", vbExclamation
+    End If
+End Sub
+
+Function ExportCurrentPlanToSCLeiter(currentKW As Integer) As Boolean
+    ' Simple direct export that ensures each sheet goes to the correct location
+    
+    ' Turn off screen updating and alerts for better performance
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+    
+    ' Userprofile declarations
+    Dim userProfile As String
+    userProfile = Environ("USERPROFILE")
+    
+    ' Base path for SC-Leiter folders
+    Dim basePath As String
+    basePath = userProfile & "\OneDrive - BGO Holding GmbH\Desktop\BML_Dispo - Planung NOS - Planung NOS\20_BML _Auslieferplanung_SC_Leiter\2025\"
+    
+    ' Create this path if it doesn't exist
+    If Not FolderExists(basePath) Then
+        On Error Resume Next
+        MkDir basePath
+        On Error GoTo 0
+    End If
+    
+    ' Format KW folder name
+    Dim kwFolderName As String
+    kwFolderName = "KW" & currentKW
+    
+    ' Get the date for this KW
+    Dim kwDate As Date
+    kwDate = GetDateForKW2025(currentKW)
+    
+    ' PROCESS EACH LOCATION ONE BY ONE
+    
+    ' 1. WIENER-NEUDORF
+    On Error Resume Next
+    Dim wnSheet As Worksheet
+    Set wnSheet = ThisWorkbook.Worksheets("Tourenplan_BML_WNeudorf")
+    If Not wnSheet Is Nothing Then
+        ExportSheetToLocation wnSheet, "SC_Wiener-Neudorf", basePath, kwFolderName, kwDate
+    End If
+    
+    ' 2. GRAZ
+    Dim grazSheet As Worksheet
+    Set grazSheet = ThisWorkbook.Worksheets("Tourenplan_BML_Graz")
+    If Not grazSheet Is Nothing Then
+        ExportSheetToLocation grazSheet, "SC_Graz", basePath, kwFolderName, kwDate
+    End If
+    
+    ' 3. INNSBRUCK
+    Dim innsbruckSheet As Worksheet
+    Set innsbruckSheet = ThisWorkbook.Worksheets("Tourenplan_BML_Innsbruck")
+    If Not innsbruckSheet Is Nothing Then
+        ExportSheetToLocation innsbruckSheet, "SC_Innsbruck", basePath, kwFolderName, kwDate
+    End If
+    
+    ' 4. KLAGENFURT
+    Dim klagenfurtSheet As Worksheet
+    Set klagenfurtSheet = ThisWorkbook.Worksheets("Tourenplan_BML_Klagenfurt")
+    If Not klagenfurtSheet Is Nothing Then
+        ExportSheetToLocation klagenfurtSheet, "SC_Klagenfurt", basePath, kwFolderName, kwDate
+    End If
+    
+    ' 5. LINZ
+    Dim linzSheet As Worksheet
+    Set linzSheet = ThisWorkbook.Worksheets("Tourenplan_BML_Linz")
+    If Not linzSheet Is Nothing Then
+        ExportSheetToLocation linzSheet, "SC_Linz", basePath, kwFolderName, kwDate
+    End If
+    On Error GoTo 0
+    
+    ' Restore settings
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+    
+    MsgBox "Export zu SC-Leiter erfolgreich abgeschlossen.", vbInformation
+    ExportCurrentPlanToSCLeiter = True
+    Exit Function
+    
+    ' Error handler
+    MsgBox "Fehler beim Export zu SC-Leiter: " & Err.Description, vbExclamation
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+    ExportCurrentPlanToSCLeiter = False
+End Function
+
+Sub ExportSheetToLocation(sourceSheet As Worksheet, scFolderName As String, basePath As String, kwFolderName As String, kwDate As Date)
+    ' Export a single sheet to its location
+    On Error Resume Next
+    
+    ' Create SC folder path
+    Dim scFolderPath As String
+    scFolderPath = basePath & scFolderName
+    
+    ' Create SC folder if it doesn't exist
+    If Not FolderExists(scFolderPath) Then
+        MkDir scFolderPath
+    End If
+    
+    ' Create KW folder path
+    Dim kwFolderPath As String
+    kwFolderPath = scFolderPath & "\" & kwFolderName
+    
+    ' Create KW folder if it doesn't exist
+    If Not FolderExists(kwFolderPath) Then
+        MkDir kwFolderPath
+    End If
+    
+    ' Create a new temporary workbook
+    Dim tempWb As Workbook
+    Set tempWb = Application.Workbooks.Add
+    
+    ' Delete extra sheets
+    While tempWb.Sheets.count > 1
+        Application.DisplayAlerts = False
+        tempWb.Sheets(2).Delete
+        Application.DisplayAlerts = True
+    Wend
+    
+    ' Copy the source sheet to the temp workbook
+    sourceSheet.Copy Before:=tempWb.Sheets(1)
+    
+    ' Use the name of the source sheet for the sheet in the new workbook
+    Dim sheetBaseName As String
+    sheetBaseName = Replace(sourceSheet.Name, "Tourenplan_BML_", "")
+    tempWb.Sheets(1).Name = sheetBaseName
+    
+    ' Delete the default Sheet1 that Excel adds
+    If tempWb.Sheets.count > 1 Then
+        Application.DisplayAlerts = False
+        tempWb.Sheets(2).Delete
+        Application.DisplayAlerts = True
+    End If
+    
+    ' Generate the filename
+    Dim fileName As String
+    fileName = kwFolderName & ".xlsx"
+    
+    ' Check if file already exists
+    Dim filePath As String
+    filePath = kwFolderPath & "\" & fileName
+    
+    If FileExists(filePath) Then
+        ' File exists, create a new filename with a counter
+        Dim counter As Integer
+        counter = 1
+        Do While FileExists(kwFolderPath & "\" & kwFolderName & "-new(" & counter & ").xlsx")
+            counter = counter + 1
+        Loop
+        filePath = kwFolderPath & "\" & kwFolderName & "-new(" & counter & ").xlsx"
+    End If
+    
+    ' Save the workbook
+    tempWb.SaveAs filePath, FileFormat:=xlOpenXMLWorkbook
+    
+    ' Close the temporary workbook
+    tempWb.Close SaveChanges:=False
+    
+    ' Create tour folders
+    CreateFormattedTourFolders kwFolderPath, sourceSheet, kwDate
+End Sub
+
+Sub ExportSingleSC(scFolder As String, sheetName As String, basePath As String, kwFolderName As String, currentKW As Integer, kwDate As Date, tempWb As Workbook)
+    ' Export a single SC location
+    On Error GoTo ErrorHandler
+    
+    ' Check if the sheet exists
+    Dim sourceSheet As Worksheet
+    On Error Resume Next
+    Set sourceSheet = ThisWorkbook.Worksheets(sheetName)
+    If sourceSheet Is Nothing Then
+        Debug.Print "Sheet " & sheetName & " not found, skipping export for " & scFolder
+        Exit Sub
+    End If
+    On Error GoTo ErrorHandler
+    
+    ' Create SC folder path
+    Dim scFolderPath As String
+    scFolderPath = basePath & scFolder
+    
+    ' Create SC folder if it doesn't exist
+    If Not FolderExists(scFolderPath) Then
+        MkDir scFolderPath
+    End If
+    
+    ' Create KW folder path
+    Dim kwFolderPath As String
+    kwFolderPath = scFolderPath & "\" & kwFolderName
+    
+    ' Create KW folder if it doesn't exist
+    If Not FolderExists(kwFolderPath) Then
+        MkDir kwFolderPath
+    End If
+    
+    ' Clear temp workbook if it has sheets
+    While tempWb.Sheets.count > 1
+        Application.DisplayAlerts = False
+        tempWb.Sheets(1).Delete
+        Application.DisplayAlerts = True
+    Wend
+    
+    ' Copy the source sheet to the temp workbook
+    sourceSheet.Copy Before:=tempWb.Sheets(1)
+    
+    ' Rename the sheet to just the base name without "Tourenplan_BML_"
+    Dim sheetBaseName As String
+    sheetBaseName = Replace(sheetName, "Tourenplan_BML_", "")
+    On Error Resume Next
+    tempWb.Sheets(1).Name = sheetBaseName
+    On Error GoTo ErrorHandler
+    
+    ' Generate file name
+    Dim fileName As String
+    fileName = kwFolderName & ".xlsx"
+    
+    ' Check if file already exists and adjust name if needed
+    Dim filePath As String
+    filePath = kwFolderPath & "\" & fileName
+    
+    If FileExists(filePath) Then
+        ' File exists, create a new name with counter
+        Dim counter As Integer
+        counter = 1
+        Do While FileExists(kwFolderPath & "\" & kwFolderName & "-new(" & counter & ").xlsx")
+            counter = counter + 1
+        Loop
+        filePath = kwFolderPath & "\" & kwFolderName & "-new(" & counter & ").xlsx"
+    End If
+    
+    ' Save the temp workbook to the destination
+    tempWb.SaveAs filePath, FileFormat:=xlOpenXMLWorkbook
+    
+    ' Now create folders for each tour with formatted names
+    CreateFormattedTourFolders kwFolderPath, sourceSheet, kwDate
+    
+    Exit Sub
+    
+ErrorHandler:
+    Debug.Print "Error in ExportSingleSC for " & scFolder & ": " & Err.Description
+    ' Continue with next SC
+End Sub
+
+Sub CreateFormattedTourFolders(kwFolderPath As String, sourceSheet As Worksheet, kwStartDate As Date)
+    ' Create folders for each tour with formatted names: MM_TT_WT_TOURNAME
+    On Error Resume Next
+    
+    ' Define column sets for days (Mon-Fri)
+    Dim colSets As Variant
+    colSets = Array(Array("B", "C"), Array("E", "F"), Array("H", "I"), _
+                   Array("K", "L"), Array("N", "O"))
+    
+    ' Array of weekday abbreviations in German
+    Dim weekdayAbbr(0 To 4) As String
+    weekdayAbbr(0) = "MO"  ' Monday
+    weekdayAbbr(1) = "DI"  ' Tuesday
+    weekdayAbbr(2) = "MI"  ' Wednesday
+    weekdayAbbr(3) = "DO"  ' Thursday
+    weekdayAbbr(4) = "FR"  ' Friday
+    
+    ' Process each day
+    Dim day As Integer
+    For day = 0 To 4
+        Dim cols As Variant
+        cols = colSets(day)
+        
+        ' Calculate the date for this day (kwStartDate + day)
+        Dim tourDate As Date
+        tourDate = kwStartDate + day
+        
+        ' Format month and day for folder name
+        Dim monthStr As String, dayStr As String
+        
+        ' Use simple date string extraction
+        Dim dateString As String
+        dateString = Format(tourDate, "mm/dd/yyyy")
+        monthStr = Left(dateString, 2)
+        dayStr = Mid(dateString, 4, 2)
+        
+        ' Get weekday abbreviation
+        Dim dayAbbr As String
+        dayAbbr = weekdayAbbr(day)
+        
+        ' Scan through rows 3-33, stepping by 3 for each car
+        Dim row As Integer
+        For row = 3 To 30 Step 3
+            ' Get tour name from cell
+            Dim tourName As String
+            tourName = Trim(sourceSheet.Range(cols(0) & row).Value)
+            
+            ' Skip if no tour name
+            If tourName = "" Then GoTo NextRow
+            
+            ' Clean up tour name for folder name - RENAMED to avoid conflict
+            Dim cleanedName As String  ' Changed variable name
+            cleanedName = CleanupTourName(tourName)  ' Changed function name
+            
+            ' Format the folder name: MM_TT_WT_TOURNAME
+            Dim folderName As String
+            folderName = monthStr & "_" & dayStr & "_" & dayAbbr & "_" & cleanedName
+            
+            ' Create folder if it doesn't exist
+            Dim tourFolderPath As String
+            tourFolderPath = kwFolderPath & "\" & folderName
+            
+            If Not FolderExists(tourFolderPath) Then
+                MkDir tourFolderPath
+            End If
+NextRow:
+        Next row
+    Next day
+    
+    On Error GoTo 0
+End Sub
+
+Function CleanupTourName(tourName As String) As String
+    ' Clean up tour name but preserve meaningful parts for folder naming
+    ' RENAMED function to avoid conflict
+    Dim result As String
+    result = tourName
+    
+    ' Remove the "(Noch Platz)" text if present
+    result = Replace(result, "(Noch Platz)", "")
+    
+    ' Replace invalid folder name characters
+    result = Replace(result, "/", ",")  ' Replace / with comma to preserve information
+    result = Replace(result, "\", "-")
+    result = Replace(result, ":", "")
+    result = Replace(result, "*", "")
+    result = Replace(result, "?", "")
+    result = Replace(result, """", "")
+    result = Replace(result, "<", "")
+    result = Replace(result, ">", "")
+    result = Replace(result, "|", "-")
+    
+    ' Trim spaces
+    result = Trim(result)
+    
+    ' If result is empty after cleaning, use a default
+    If result = "" Then
+        result = "Tour_" & Format(Now, "hhmmss")
+    End If
+    
+    CleanupTourName = result  ' Changed function name
+End Function
+
+Function CleanFolderName(tourName As String) As String
+    ' Clean up tour name to make it suitable for a folder name
+    Dim result As String
+    result = tourName
+    
+    ' Remove the "(Noch Platz)" text if present
+    result = Replace(result, "(Noch Platz)", "")
+    
+    ' Replace invalid folder name characters
+    result = Replace(result, "/", "-")
+    result = Replace(result, "\", "-")
+    result = Replace(result, ":", "")
+    result = Replace(result, "*", "")
+    result = Replace(result, "?", "")
+    result = Replace(result, """", "")
+    result = Replace(result, "<", "")
+    result = Replace(result, ">", "")
+    result = Replace(result, "|", "-")
+    
+    ' Trim spaces
+    result = Trim(result)
+    
+    ' If result is empty after cleaning, use a default
+    If result = "" Then
+        result = "Tour_" & Format(Now, "hhmmss")
+    End If
+    
+    CleanFolderName = result
+End Function
+
+Function FolderExists(folderPath As String) As Boolean
+    ' Check if a folder exists
+    On Error Resume Next
+    FolderExists = (Dir(folderPath, vbDirectory) <> "")
+    On Error GoTo 0
+End Function
+
+Function FileExists(filePath As String) As Boolean
+    ' Check if a file exists
+    On Error Resume Next
+    FileExists = (Dir(filePath) <> "")
+    On Error GoTo 0
+End Function
 
 Sub SetupKWSwitcher()
     ' Create a KW switcher control (just a button, no dropdown)
