@@ -245,7 +245,7 @@ Function FindLatestFileForKW(kwNumber As Integer, ByRef latestFile As String, By
     
     ' Setup the target folder path with the specified OneDrive path
     Dim targetFolder As String
-    targetFolder = userProfile & "\OneDrive - BGO Holding GmbH\BML_Dispo - Planung NOS - Planung NOS\10_Excel_Wocheneinteilung_Intern_NOS\Autosave"
+    targetFolder = userProfile & "\OneDrive - BGO Holding GmbH\Desktop\BML_Dispo - Planung NOS - Planung NOS\10_Excel_Wocheneinteilung_Intern_NOS\Autosave"
     
     ' File pattern to search for
     Dim filePattern As String
@@ -542,7 +542,7 @@ Function SaveWorkbookToSpecialFolder(currentKW As Integer) As Boolean
     
     ' Setup the target folder path with the specified OneDrive path
     Dim targetFolder As String
-    targetFolder = userProfile & "\OneDrive - BGO Holding GmbH\BML_Dispo - Planung NOS - Planung NOS\10_Excel_Wocheneinteilung_Intern_NOS\Autosave"
+    targetFolder = userProfile & "\OneDrive - BGO Holding GmbH\Desktop\BML_Dispo - Planung NOS - Planung NOS\10_Excel_Wocheneinteilung_Intern_NOS\Autosave"
     
     ' Create the folder if it doesn't exist
     On Error Resume Next
