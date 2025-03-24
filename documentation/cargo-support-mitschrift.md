@@ -72,6 +72,9 @@
 - **Aufpassen = Keine Softwarekontrolle** für **Bereitstell_Datum** ist **später** als **Entlade_Start_Datum**
 - **Bermerkungs_Felder** sind **1:1** wie in **Profi-Tour**
 
+## Export der DB in Excel
+- Rechtsklick auf Spalte => Exportiere Tabelle
+
 ## Planung von DIREKT_BAUSTELLE Touren (In DB-Ansicht möglich)
 - Bei DIREKT_BAUSTELLE => In Datenbank-Ansicht => Tour markieren => **Zu Tour Verbinden**
 
