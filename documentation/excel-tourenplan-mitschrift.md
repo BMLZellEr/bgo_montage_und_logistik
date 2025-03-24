@@ -1,12 +1,13 @@
 ## Excel-Makros To-Do List (Hardcore_Tour_Setup.bas)
-- **💡 Check Save files if they have all Data.** => DONE WORKING
-- **💡 Make Transfer Tours & WAB's Button work** => DONE WORKING (Tours-WNeudorf)
-- **💡 While KW_Clearing => Also clear Subsheets and fixate Dates on Subsheets (B2)** => DONE WORKING
-- **💡 Make a Print_for_Alex_Button or even Print_KW_for_Alex_Button** = DONE> WORKING
-- **💡 Maybe Autosave without the Actual_Makro_Main_Sheet => Make a Tourenkonzept_Normal_Sheet** => DONE WORKING
+- **💡 Check Save files if they have all Data.** => => 💚 DONE WORKING
+- **💡 Make Transfer Tours & WAB's Button work** => => 💚 DONE WORKING (Tours-WNeudorf)
+- **💡 While KW_Clearing => Also clear Subsheets and fixate Dates on Subsheets (B2)** => 💚 DONE WORKING
+- **💡 Make a Print_for_Alex_Button or even Print_KW_for_Alex_Button** => 💚 DONE WORKING
+- **💡 Maybe Autosave without the Actual_Makro_Main_Sheet => Make a Tourenkonzept_Normal_Sheet** => 💚 DONE WORKING
 - **💡 Make Save_for_SC_Leiter_Button => Combine with auto. mails an SC-Leiter**
-- **💡 If Possible if make KW_Switcher load Autosave_Files or atleast Extract Data and refill.** => **SUPER HARD 💀**
-- **💡 Make Cargo-Support => Excel-Tours Programm that adds Missing Data** => **SUPER HARD 💀**
+- **💡 If Possible if make KW_Switcher load Autosave_Files or atleast Extract Data and refill.** => **SUPER HARD 💀 => 💚 DONE WORKING**
+- **💡 Make Cargo-Support => Excel-Tours Programm that adds Missing Data**
+- **💡 Got hint from Ante about Exoport of CS_DATA**
 
 
 ## Tipps für Excel-Listen: [Excel_Listen_Immer_pro_KW$$]
