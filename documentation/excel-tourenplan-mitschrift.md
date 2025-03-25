@@ -10,6 +10,15 @@
 - **💡 Got hint from Ante about Exoport of CS_DATA**
 
 
+## SC WNeudorf Roman Liste Fixes!!
+- **💡 2 BML + $HELMUT_ZAHL M**
+- **💡 Falls Montage mehrere Tage geht**
+- **💡 Kennezciehn von M-Bussen => Werden nur MBUS**
+- **💡 Helmut Montage_Tage**
+- **💡 Farben aufpassen => Für Tage verwenden nicht gleich**
+- **💡 SC für Lager-Lieferung**
+- **💡 Speditions Kusztrich => Komplett Weg**
+
 ## Tipps für Excel-Listen: [Excel_Listen_Immer_pro_KW$$]
 - Werden **LIVE am Onedrive Ordner bearbeitet** 💀
 - SC-Leiter & BGO = **R,W,D-Rights** 💀
