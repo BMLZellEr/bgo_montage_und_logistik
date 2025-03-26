@@ -487,19 +487,23 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
     tempWs.ExportAsFixedFormat Type:=xlTypePDF, Filename:=pdfFileName, Quality:=xlQualityStandard, _
         IncludeDocProperties:=True, IgnorePrintAreas:=False, OpenAfterPublish:=False
     
-    ' Clean up - delete the temporary worksheet
-    'Application.DisplayAlerts = False
-    'tempWs.Delete
-    'Application.DisplayAlerts = True
+    ' Close the workbook containing the temporary worksheet
+    On Error Resume Next
+    Dim tempWorkbook As Workbook
+    Set tempWorkbook = tempWs.Parent
+    tempWorkbook.Close SaveChanges:=False
+    On Error GoTo 0
     
     Exit Sub
     
 ErrorHandler:
     MsgBox "Error creating Summary PDF for tour " & tourNumber & ": " & Err.description, vbCritical
     On Error Resume Next
-    'Application.DisplayAlerts = False
-    'If Not tempWs Is Nothing Then tempWs.Delete
-    'Application.DisplayAlerts = True
+    If Not tempWs Is Nothing Then
+        Dim errorWorkbook As Workbook
+        Set errorWorkbook = tempWs.Parent
+        errorWorkbook.Close SaveChanges:=False
+    End If
 End Sub
 
 Sub CreateStopFreightPDFFromTemplate(ws As Worksheet, rowNum As Long, tourNumber As String, tourName As String, pdfPath As String)
@@ -906,19 +910,23 @@ Sub CreateStopFreightPDFFromTemplate(ws As Worksheet, rowNum As Long, tourNumber
     tempWs.ExportAsFixedFormat Type:=xlTypePDF, Filename:=pdfFileName, Quality:=xlQualityStandard, _
         IncludeDocProperties:=True, IgnorePrintAreas:=False, OpenAfterPublish:=False
     
-    ' Clean up - delete the temporary worksheet
-    'Application.DisplayAlerts = False
-    'tempWs.Delete
-    'Application.DisplayAlerts = True
+    ' Close the workbook containing the temporary worksheet
+    On Error Resume Next
+    Dim tempWorkbook As Workbook
+    Set tempWorkbook = tempWs.Parent
+    tempWorkbook.Close SaveChanges:=False
+    On Error GoTo 0
     
     Exit Sub
     
 ErrorHandler:
     MsgBox "Error creating PDF for stop " & stopNum & ": " & Err.description, vbCritical
     On Error Resume Next
-    'Application.DisplayAlerts = False
-    'If Not tempWs Is Nothing Then tempWs.Delete
-    'Application.DisplayAlerts = True
+    If Not tempWs Is Nothing Then
+        Dim errorWorkbook As Workbook
+        Set errorWorkbook = tempWs.Parent
+        errorWorkbook.Close SaveChanges:=False
+    End If
 End Sub
 
 Function FormatItemsList(itemsText As String, artikelTypen As String) As String
