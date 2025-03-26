@@ -8,7 +8,7 @@
 - **🛢️ WAB'S** => **bei 20-25m³ voll** => meist **nicht auf 30m³ füllbar**
 - **📅 Kalender-Woche** bei **>= 10m³** = **NICHT FAHREN** => **ist mit Vertreib abklärt ? Peter fragen? - Gebiete ?**
 - **📅 Unterschiedliche Auslifer-Kalenderwochen für Gebiete** => **NEIN** => **Alles (Mo - Fr)**
-- **📦 Produktions_Datum manchmal unterschiedlich => DONE ALEX
+- **📦 Produktions_Datum manchmal unterschiedlich => DONE ALEX**
 - **🔨 Einlastungsdatum:** => **-3 Werktage** == **📦 Prod_Datum**  => Liste in Teams mit Alex/Helmuth in Teams ablegen für WAB-Nr. 
 - **⏰ WAB_Bereitstell_Uhrzeit: 06:00 Uhr pro Gebiet** | **Tour ab 08:00**
 - **📑 Frachtbriefe und Auslieferliste für SC-Leiter** => Helmut macht Listen mit **Ladelisten + Tourenplan + Deckblatt**
