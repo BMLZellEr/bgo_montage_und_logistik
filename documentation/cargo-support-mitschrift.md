@@ -60,6 +60,15 @@
 - Frachtbrief & Tourenplan & Transportauftrag & Auftragsbest => Alle von **DB-Ansicht** aus **druckbar** => **"F6"**
 - **Wichtig** = Arbeitsweise ist anders als in Profi-Tour => Zuerst Lager-WAB planen & Anschließend Tour teilen
 
+## Cargo Support Tickets Live-System
+- Ende April is **Service-Vertrag** aus => Bis dahin muss alles gefixed sein.
+- **Verladereihenfolge** Live-System geht nicht => Mit Klaus nicht besprochen.
+- Immer Nach-Checken ob es nicht passt !
+- Helmuth => Sachen sagen !
+- Übergang Profi/Cargo => "KW__" ==>> 1KW Notwendig.
+- Key-User Profi-Tour
+- August => profi-tour = Umstellung.
+
 ## Programmstart & Filter der Aufträge
 - Filter in der DB-Ansicht ist oben links => Keine "KW" => Montag bis Sonntag der gewünschten KW auswählen.
 - Gebiete **ZONE** nach Karte Filter => Karte .pptx per Mail von Isabel
