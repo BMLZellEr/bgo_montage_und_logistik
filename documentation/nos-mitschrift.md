@@ -220,6 +220,9 @@ Danke im Voraus.
 - 💡 Excel-Listen mit Helmuth und Heinz müssen eingeführt werden => Teams & Excel vorbereiten => ALMOST DONE
 - 💡 PDF-Parser und Crap-Scripts für automation seems very powerful at NOS
 
+## NOS Verspätungen Produktion 26.03.2025
+- Amt der Tiroler LRG => Hali Auftrag für Morgen NOS Produktion hat nicht geklappt => 1. Tag zuvor erst verständigt.
+- Pollauf Philipp hat bei NOS nachgefragt. => Nach mehrmaliger nachfrage erst heute verschieben bekannt gegeben.
 
 
 ## 17.03.2025 Start Erik: Innsbruck in Cargo-Support Abgabewoche => KW15
