@@ -66,7 +66,7 @@
 - Immer Nach-Checken ob es nicht passt !
 - Helmuth => Sachen sagen !
 - Übergang Profi/Cargo => "KW__" ==>> 1KW Notwendig.
-- Key-User Profi-Tour
+- **Key-User Profi-Tour** Isabell 26.03.25 => Ab August
 - August => profi-tour = Umstellung.
 
 ## Programmstart & Filter der Aufträge
