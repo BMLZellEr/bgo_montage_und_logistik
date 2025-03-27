@@ -68,6 +68,8 @@
 - Übergang Profi/Cargo => "KW__" ==>> 1KW Notwendig.
 - **Key-User Profi-Tour** Isabell 26.03.25 => Ab August
 - August => profi-tour = Umstellung.
+- Auto. Verladereihenfolge => Needs a fix => Also auto Verladeliste.pdf
+- Mitarbeiter needs to be set 1 by 1 => Very annoying => Either Planungsdaten ändern oder Tour-Ebene
 
 ## Programmstart & Filter der Aufträge
 - Filter in der DB-Ansicht ist oben links => Keine "KW" => Montag bis Sonntag der gewünschten KW auswählen.
