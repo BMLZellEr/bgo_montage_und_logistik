@@ -380,12 +380,13 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
     totalMontagezeit = 0
     
     ' Find column indices in template
-    Dim colStop As Long, colKunde As Long, colVolumen As Long, colGewicht As Long, colMontZeit As Long
+    Dim colStop As Long, colKunde As Long, colVolumen As Long, colGewicht As Long, colMontZeit As Long, colStopZeit As Long
     colStop = 1    ' Default column positions
     colKunde = 2
     colVolumen = 3
     colGewicht = 4
     colMontZeit = 5
+    colStopZeit = 6  ' New column for Stop-Zeit
     
     ' Locate column headers to ensure we're placing data in the right columns
     For i = 1 To tempWs.Cells(dataStartRow - 1, tempWs.Columns.count).End(xlToLeft).Column
@@ -400,6 +401,8 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
                 colGewicht = i
             Case "Mont-Zeit"
                 colMontZeit = i
+            Case "Stop-Zeit"
+                colStopZeit = i
         End Select
     Next i
     
@@ -413,6 +416,7 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
     Dim stopNum As Long
     Dim recipientName As String, city As String
     Dim weight As Double, volume As Double, montagezeit As Double
+    Dim deliveryTime As String, stopZeitRange As String
     
     ' Process each stop
     For j = 1 To tourStops.count
@@ -425,6 +429,34 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
         recipientName = ""
         If Not IsEmpty(ws.Cells(currentRow, 36).Value) Then ' Column AI - Empfänger
             recipientName = ws.Cells(currentRow, 36).Value
+        End If
+        
+        ' Get address information
+        Dim recipientAddress As String, recipientCity As String, recipientPostcode As String
+        recipientAddress = ""
+        recipientCity = ""
+        recipientPostcode = ""
+        
+        If Not IsEmpty(ws.Cells(currentRow, 37).Value) Then ' Column AJ - Empf. Str.
+            recipientAddress = ws.Cells(currentRow, 37).Value
+        End If
+        
+        If Not IsEmpty(ws.Cells(currentRow, 38).Value) Then ' Column AK - Empf. Ort
+            recipientCity = ws.Cells(currentRow, 38).Value
+        End If
+        
+        If Not IsEmpty(ws.Cells(currentRow, 39).Value) Then ' Column AL - Empf. Plz
+            recipientPostcode = ws.Cells(currentRow, 39).Value
+        End If
+        
+        ' Format the address line
+        Dim fullAddress As String
+        fullAddress = recipientAddress
+        If Len(recipientPostcode) > 0 Or Len(recipientCity) > 0 Then
+            If Len(fullAddress) > 0 Then
+                fullAddress = fullAddress & ", "
+            End If
+            fullAddress = fullAddress & recipientPostcode & " " & recipientCity
         End If
         
         weight = 0
@@ -442,32 +474,181 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
             montagezeit = ws.Cells(currentRow, 54).Value
         End If
         
+        ' Extract delivery time from System Zustelldatum (Column R or 18)
+        deliveryTime = ""
+        stopZeitRange = ""
+        
+        If Not IsEmpty(ws.Cells(currentRow, 18).Value) Then ' Column R - System Zustelldatum
+            If IsDate(ws.Cells(currentRow, 18).Value) Then
+                ' Extract only the time part
+                deliveryTime = Format(ws.Cells(currentRow, 18).Value, "hh:mm")
+                
+                ' Calculate end time (start time + 3 hours)
+                Dim startTimeValue As Date, endTimeValue As Date
+                startTimeValue = CDate(Format(ws.Cells(currentRow, 18).Value, "hh:mm"))
+                endTimeValue = DateAdd("h", 3, startTimeValue)
+                
+                ' Format the time range
+                stopZeitRange = deliveryTime & " - " & Format(endTimeValue, "hh:mm")
+            End If
+        End If
+        
         ' Add to total montagezeit
         totalMontagezeit = totalMontagezeit + montagezeit
         
-        ' Insert a new row for this stop
+        ' Insert two new rows for this stop (or use existing rows for first stop)
         If j > 1 Then
-            tempWs.Rows(stopRow).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+            ' Insert two rows at once
+            tempWs.Rows(stopRow & ":" & (stopRow + 1)).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
         End If
         
-        ' Fill in the values - ensure the correct order and format
+        ' Determine if Kunden column spans multiple columns
+        Dim kundenRange As Range
+        Dim kundenEndCol As Integer
+        kundenEndCol = colKunde
+        
+        ' Check if columns B through D should be merged in the template
+        If colKunde = 2 Then ' If Kunden is in column B
+            ' Check if we should merge B-D (typically columns 2-4)
+            kundenEndCol = 4 ' Column D is typically 4
+            If kundenEndCol > tempWs.Columns.count Then
+                kundenEndCol = tempWs.Columns.count
+            End If
+        End If
+        
+        ' Fill in the values for name row
         tempWs.Cells(stopRow, colStop).Value = "Stop " & stopNum
         tempWs.Cells(stopRow, colKunde).Value = recipientName
         tempWs.Cells(stopRow, colVolumen).Value = Format(volume, "#,##0.00") & " m³"
         tempWs.Cells(stopRow, colGewicht).Value = Format(weight, "#,##0.00") & " kg"
         tempWs.Cells(stopRow, colMontZeit).Value = Format(montagezeit, "#,##0.00") & " h"
         
-        stopRow = stopRow + 1
+        ' Add the new Stop-Zeit column value
+        If colStopZeit > 0 Then
+            tempWs.Cells(stopRow, colStopZeit).Value = stopZeitRange
+        End If
+        
+        ' Fill in the address row
+        tempWs.Cells(stopRow + 1, colStop).Value = ""  ' Leave empty for merged cell effect
+        tempWs.Cells(stopRow + 1, colKunde).Value = fullAddress
+        tempWs.Cells(stopRow + 1, colVolumen).Value = ""
+        tempWs.Cells(stopRow + 1, colGewicht).Value = ""
+        tempWs.Cells(stopRow + 1, colMontZeit).Value = ""
+        If colStopZeit > 0 Then
+            tempWs.Cells(stopRow + 1, colStopZeit).Value = ""
+        End If
+        
+        ' Merge the stop number cells across the two rows
+        tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, colStop)).Merge
+        
+        ' Merge the customer name cells horizontally for row 1 (B-D)
+        If kundenEndCol > colKunde Then
+            Set kundenRange = tempWs.Range(tempWs.Cells(stopRow, colKunde), tempWs.Cells(stopRow, kundenEndCol))
+            kundenRange.Merge
+        End If
+        
+        ' Merge the customer address cells horizontally for row 2 (B-D)
+        If kundenEndCol > colKunde Then
+            Set kundenRange = tempWs.Range(tempWs.Cells(stopRow + 1, colKunde), tempWs.Cells(stopRow + 1, kundenEndCol))
+            kundenRange.Merge
+        End If
+        
+        ' Merge the measurement cells vertically
+        tempWs.Range(tempWs.Cells(stopRow, colVolumen), tempWs.Cells(stopRow + 1, colVolumen)).Merge
+        tempWs.Range(tempWs.Cells(stopRow, colGewicht), tempWs.Cells(stopRow + 1, colGewicht)).Merge
+        tempWs.Range(tempWs.Cells(stopRow, colMontZeit), tempWs.Cells(stopRow + 1, colMontZeit)).Merge
+        If colStopZeit > 0 Then
+            tempWs.Range(tempWs.Cells(stopRow, colStopZeit), tempWs.Cells(stopRow + 1, colStopZeit)).Merge
+        End If
+        
+        ' Remove inner borders between customer name and address to make it look like one cell
+        ' First set all borders for the entire range
+        With tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, IIf(colStopZeit > 0, colStopZeit, colMontZeit)))
+            .Borders.LineStyle = xlContinuous
+            .Borders.weight = xlThin
+        End With
+        
+        ' Then remove the horizontal border between customer name and address
+        If kundenEndCol > colKunde Then
+            With tempWs.Range(tempWs.Cells(stopRow, colKunde), tempWs.Cells(stopRow, kundenEndCol)).Borders(xlEdgeBottom)
+                .LineStyle = xlNone
+            End With
+            
+            With tempWs.Range(tempWs.Cells(stopRow + 1, colKunde), tempWs.Cells(stopRow + 1, kundenEndCol)).Borders(xlEdgeTop)
+                .LineStyle = xlNone
+            End With
+        End If
+        
+        ' Center align cells except customer info
+        With tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, colStop))
+            ' Set horizontal alignment for stop column
+            .HorizontalAlignment = xlCenter
+            .VerticalAlignment = xlCenter
+        End With
+        
+        With tempWs.Range(tempWs.Cells(stopRow, colVolumen), tempWs.Cells(stopRow + 1, IIf(colStopZeit > 0, colStopZeit, colMontZeit)))
+            ' Set horizontal alignment for measurement columns
+            .HorizontalAlignment = xlCenter
+            .VerticalAlignment = xlCenter
+        End With
+        
+        ' Left align customer info
+        With tempWs.Range(tempWs.Cells(stopRow, colKunde), tempWs.Cells(stopRow, IIf(kundenEndCol > colKunde, kundenEndCol, colKunde)))
+            .HorizontalAlignment = xlLeft
+            .VerticalAlignment = xlTop
+        End With
+        
+        With tempWs.Range(tempWs.Cells(stopRow + 1, colKunde), tempWs.Cells(stopRow + 1, IIf(kundenEndCol > colKunde, kundenEndCol, colKunde)))
+            .HorizontalAlignment = xlLeft
+            .VerticalAlignment = xlTop
+        End With
+        
+        ' Ensure font size matches throughout
+        With tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, IIf(colStopZeit > 0, colStopZeit, colMontZeit)))
+            .Font.Size = tempWs.Cells(dataStartRow, colStop).Font.Size
+        End With
+        
+        ' Move to the next stop position (2 rows later)
+        stopRow = stopRow + 2
     Next j
     
-    ' Add total row
+    ' Add total row (2 rows tall like the stop rows)
     tempWs.Cells(stopRow, colStop).Value = "Total"
+    tempWs.Cells(stopRow, colKunde).Value = ""
+    tempWs.Cells(stopRow + 1, colKunde).Value = ""
     tempWs.Cells(stopRow, colVolumen).Value = Format(totalVolume, "#,##0.00") & " m³"
     tempWs.Cells(stopRow, colGewicht).Value = Format(totalWeight, "#,##0.00") & " kg"
     tempWs.Cells(stopRow, colMontZeit).Value = Format(totalMontagezeit, "#,##0.00") & " h"
     
-    ' Bold the totals row
-    tempWs.Rows(stopRow).Font.Bold = True
+    ' Merge cells vertically for the Total row
+    tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, colStop)).Merge
+    tempWs.Range(tempWs.Cells(stopRow, colKunde), tempWs.Cells(stopRow + 1, colKunde)).Merge
+    tempWs.Range(tempWs.Cells(stopRow, colVolumen), tempWs.Cells(stopRow + 1, colVolumen)).Merge
+    tempWs.Range(tempWs.Cells(stopRow, colGewicht), tempWs.Cells(stopRow + 1, colGewicht)).Merge
+    tempWs.Range(tempWs.Cells(stopRow, colMontZeit), tempWs.Cells(stopRow + 1, colMontZeit)).Merge
+    If colStopZeit > 0 Then
+        tempWs.Range(tempWs.Cells(stopRow, colStopZeit), tempWs.Cells(stopRow + 1, colStopZeit)).Merge
+    End If
+    
+    ' Format the total row - bold, center aligned, and thicker borders
+    With tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, IIf(colStopZeit > 0, colStopZeit, colMontZeit)))
+        ' Bold text
+        .Font.Bold = True
+        
+        ' Center alignment
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        
+        ' Apply thick borders
+        .Borders.LineStyle = xlContinuous
+        .Borders.weight = xlThick
+        
+        ' Ensure background color is consistent
+        .Interior.ColorIndex = xlNone
+    End With
+    
+    ' Update the stopRow for any potential next operations
+    stopRow = stopRow + 2
     
     ' Save as PDF
     pdfFileName = pdfPath & "Tour_" & tourNumber & "_Summary.pdf"
@@ -505,7 +686,6 @@ ErrorHandler:
         errorWorkbook.Close SaveChanges:=False
     End If
 End Sub
-
 Sub CreateStopFreightPDFFromTemplate(ws As Worksheet, rowNum As Long, tourNumber As String, tourName As String, pdfPath As String)
     ' Create a PDF file for a specific stop on a tour using the template
     On Error GoTo ErrorHandler
@@ -516,7 +696,7 @@ Sub CreateStopFreightPDFFromTemplate(ws As Worksheet, rowNum As Long, tourNumber
     Dim abNumber As String
     Dim artikelTypen As String, warenText As String
     Dim pdfFileName As String
-    Dim i As Long, row As Long
+    Dim i As Long, row As Long, j As Long
     
     ' Get stop information
     stopNum = ws.Cells(rowNum, 3).Value ' Column C
@@ -524,7 +704,7 @@ Sub CreateStopFreightPDFFromTemplate(ws As Worksheet, rowNum As Long, tourNumber
     
     ' Get additional info required by the template
     Dim recipientName As String, recipientAddress As String, recipientCity As String, recipientPostcode As String
-    Dim customerPhone As String, customerEmail As String, customerContact As String
+    Dim nosContact As String, nosPhone As String, nosEmail As String
     Dim deliveryDate As String, serviceType As String
     Dim abInfo As String, buildingInfo As String, importantInfo As String, deliveryInfo As String
     Dim stopWeight As Double, stopVolume As Double, montagezeit As Double
@@ -576,25 +756,25 @@ Sub CreateStopFreightPDFFromTemplate(ws As Worksheet, rowNum As Long, tourNumber
         recipientPostcode = ws.Cells(rowNum, 39).Value
     End If
     
-    ' Check if columns exist before accessing
-    customerPhone = ""
-    If rowNum > 0 And ws.Columns.count >= 59 Then
-        If Not IsEmpty(ws.Cells(rowNum, 59).Value) Then
-            customerPhone = CStr(ws.Cells(rowNum, 59).Value)
+    ' NOS contact info (columns BK, BL, BM as per screenshot)
+    nosContact = ""
+    If rowNum > 0 And ws.Columns.count >= 63 Then
+        If Not IsEmpty(ws.Cells(rowNum, 63).Value) Then
+            nosContact = CStr(ws.Cells(rowNum, 63).Value)
         End If
     End If
     
-    customerEmail = ""
-    If rowNum > 0 And ws.Columns.count >= 60 Then
-        If Not IsEmpty(ws.Cells(rowNum, 60).Value) Then
-            customerEmail = CStr(ws.Cells(rowNum, 60).Value)
+    nosPhone = ""
+    If rowNum > 0 And ws.Columns.count >= 64 Then
+        If Not IsEmpty(ws.Cells(rowNum, 64).Value) Then
+            nosPhone = CStr(ws.Cells(rowNum, 64).Value)
         End If
     End If
     
-    customerContact = ""
-    If rowNum > 0 And ws.Columns.count >= 58 Then
-        If Not IsEmpty(ws.Cells(rowNum, 58).Value) Then
-            customerContact = CStr(ws.Cells(rowNum, 58).Value)
+    nosEmail = ""
+    If rowNum > 0 And ws.Columns.count >= 65 Then
+        If Not IsEmpty(ws.Cells(rowNum, 65).Value) Then
+            nosEmail = CStr(ws.Cells(rowNum, 65).Value)
         End If
     End If
     
@@ -612,13 +792,13 @@ Sub CreateStopFreightPDFFromTemplate(ws As Worksheet, rowNum As Long, tourNumber
         End If
     End If
     
-    ' Get delivery date and time
+    ' Get delivery date and time from System Zustelldatum (Column R)
     deliveryDate = ""
-    If Not IsEmpty(ws.Cells(rowNum, 16).Value) Then ' Column P - Tour_DATE & Time
-        If IsDate(ws.Cells(rowNum, 16).Value) Then
-            deliveryDate = Format(ws.Cells(rowNum, 16).Value, "dd.MM.yyyy HH:mm")
+    If Not IsEmpty(ws.Cells(rowNum, 18).Value) Then ' Column R - System Zustelldatum
+        If IsDate(ws.Cells(rowNum, 18).Value) Then
+            deliveryDate = Format(ws.Cells(rowNum, 18).Value, "dd.MM.yyyy HH:mm")
         Else
-            deliveryDate = CStr(ws.Cells(rowNum, 16).Value)
+            deliveryDate = CStr(ws.Cells(rowNum, 18).Value)
         End If
     End If
     
@@ -668,7 +848,6 @@ Sub CreateStopFreightPDFFromTemplate(ws As Worksheet, rowNum As Long, tourNumber
             End If
         End If
     End If
-    
     On Error GoTo ErrorHandler
     
     ' Create a copy of the template
@@ -693,9 +872,17 @@ Sub CreateStopFreightPDFFromTemplate(ws As Worksheet, rowNum As Long, tourNumber
     tempWs.UsedRange.Replace "[[Kunde_Str 1]]", recipientAddress, xlWhole
     tempWs.UsedRange.Replace "[[Kunde_Ort 1]]", recipientCity, xlWhole
     tempWs.UsedRange.Replace "[[Kunde_Plz 1]]", recipientPostcode, xlWhole
-    tempWs.UsedRange.Replace "[[Kunde_Tel]]", customerPhone, xlWhole
-    tempWs.UsedRange.Replace "[[Kunde_Mail]]", customerEmail, xlWhole
-    tempWs.UsedRange.Replace "[[Kunde_Ansprechpartner]]", customerContact, xlWhole
+    
+    ' Replace NOS contact info placeholders
+    tempWs.UsedRange.Replace "[[Nos_Ansprechpartner]]", nosContact, xlWhole
+    tempWs.UsedRange.Replace "[[Nos_Tel]]", nosPhone, xlWhole
+    tempWs.UsedRange.Replace "[[Nos_Mail]]", nosEmail, xlWhole
+    
+    ' Remove old placeholders for customer contact info
+    tempWs.UsedRange.Replace "[[Kunde_Tel]]", "", xlWhole
+    tempWs.UsedRange.Replace "[[Kunde_Mail]]", "", xlWhole
+    tempWs.UsedRange.Replace "[[Kunde_Ansprechpartner]]", "", xlWhole
+    
     tempWs.UsedRange.Replace "[[AB Info]]", abInfo, xlWhole
     tempWs.UsedRange.Replace "[[Gebäudeinfo]]", buildingInfo, xlWhole
     tempWs.UsedRange.Replace "[[Wichtiger Hinweis Auftrag]]", importantInfo, xlWhole
@@ -770,6 +957,9 @@ Sub CreateStopFreightPDFFromTemplate(ws As Worksheet, rowNum As Long, tourNumber
             Dim itemText As String
             itemText = Trim(items(i))
             
+            ' Clean the item text - remove any excessive whitespace, tabs, or line breaks
+            itemText = CleanText(itemText)
+            
             If Len(itemText) > 0 Then
                 ' Get position for this item if available
                 Dim position As String
@@ -783,6 +973,11 @@ Sub CreateStopFreightPDFFromTemplate(ws As Worksheet, rowNum As Long, tourNumber
                 If InStr(itemText, "|") > 0 Then
                     Dim parts() As String
                     parts = Split(itemText, "|")
+                    
+                    ' Clean each part
+                    For j = 0 To UBound(parts)
+                        parts(j) = Trim(parts(j))
+                    Next j
                     
                     ' Format for the specific column layout:
                     ' Column A: Position (e.g., "100", "200", etc.)
@@ -799,78 +994,92 @@ Sub CreateStopFreightPDFFromTemplate(ws As Worksheet, rowNum As Long, tourNumber
                     
                     If UBound(parts) >= 3 Then
                         ' Get the first 3 item numbers
-                        itemNumbers = Trim(parts(0)) & " | " & Trim(parts(1)) & " | " & Trim(parts(2))
+                        itemNumbers = parts(0) & " | " & parts(1) & " | " & parts(2)
                         
                         ' THE FIX: Special handling for 4th part (parts(3))
                         ' Check if 4th part contains multiple spaces (indicating a split point)
                         Dim part4 As String
-                        part4 = Trim(parts(3))
+                        part4 = parts(3)
                         
-                        ' Look for 2+ spaces in a row as a split point
-                        Dim multiSpacePos As Long
-                        multiSpacePos = InStr(1, part4, "  ") ' Two or more spaces
-                        
-                        If multiSpacePos > 0 Then
-                            ' Found multiple spaces - split here
-                            itemNumbers = itemNumbers & " | " & Trim(Left(part4, multiSpacePos - 1))
-                            itemName = Trim(Mid(part4, multiSpacePos))
-                        Else
-                            ' Check for dash as a fallback
-                            Dim dashPos As Long
-                            dashPos = InStr(1, part4, " - ")
+                        ' Look for product codes in the 4th part
+                        If IsNumeric(Left(part4, 1)) Then
+                            ' If it starts with a number, it's likely a product code
+                            itemNumbers = itemNumbers & " | " & part4
                             
-                            If dashPos > 0 Then
-                                ' Found a dash - split here
-                                itemNumbers = itemNumbers & " | " & Trim(Left(part4, dashPos - 1))
-                                itemName = Trim(Mid(part4, dashPos + 3)) ' Skip the " - " part
-                            Else
-                                ' Try to identify if there's a clear split between code and description
-                                ' by looking for word boundaries (e.g., "F1 Drehstuhl")
-                                Dim j As Long
-                                Dim wordSplit As Long
-                                
-                                wordSplit = 0
-                                
-                                ' Look for common product codes
-                                For j = 1 To Len(part4) - 3
-                                    If Mid(part4, j, 1) = " " And (Mid(part4, j + 1, 1) >= "A" And Mid(part4, j + 1, 1) <= "Z") Then
-                                        wordSplit = j
-                                        Exit For
-                                    End If
+                            ' Check if there are additional parts for item name
+                            If UBound(parts) >= 4 Then
+                                itemName = parts(4)
+                                ' Add any additional parts to item name
+                                For j = 5 To UBound(parts)
+                                    itemName = itemName & " " & parts(j)
                                 Next j
-                                
-                                If wordSplit > 0 Then
-                                    ' Found a potential split point
-                                    itemNumbers = itemNumbers & " | " & Trim(Left(part4, wordSplit))
-                                    itemName = Trim(Mid(part4, wordSplit + 1))
-                                Else
-                                    ' No clear split found, include everything in item numbers
-                                    itemNumbers = itemNumbers & " | " & part4
-                                End If
                             End If
-                        End If
-                        
-                        ' Add any additional parts to item name
-                        If UBound(parts) >= 4 Then
+                        Else
+                            ' If it doesn't start with a number, it's likely the start of the item name
+                            itemName = part4
+                            ' Add any additional parts to item name
                             For j = 4 To UBound(parts)
-                                itemName = itemName & " | " & Trim(parts(j))
+                                itemName = itemName & " " & parts(j)
                             Next j
                         End If
                     Else
-                        ' Not enough parts, use what we have
-                        itemNumbers = Join(parts, " | ")
+                        ' Not enough parts, just distribute what we have
+                        If UBound(parts) >= 1 Then
+                            ' At least 2 parts - use first part for numbers, second for name
+                            itemNumbers = parts(0)
+                            itemName = parts(1)
+                            If UBound(parts) >= 2 Then
+                                itemName = itemName & " " & parts(2)
+                            End If
+                        Else
+                            ' Only one part - use it as numbers
+                            itemNumbers = parts(0)
+                        End If
                     End If
                     
-                    ' Fill in the template cells according to your specific layout
-                    tempWs.Cells(row, colPosition).Value = position
-                    tempWs.Cells(row, colItemNumbers).Value = itemNumbers   ' Goes in column B (merged B-D)
-                    tempWs.Cells(row, colItemName).Value = itemName         ' Goes in column E (merged E-F)
+                    ' Remove any remaining pipe characters in the item name
+                    itemName = Replace(itemName, "|", " ")
                 Else
                     ' Simple case - no pipe separator
-                    tempWs.Cells(row, colPosition).Value = position
-                    tempWs.Cells(row, colItemNumbers).Value = ""
-                    tempWs.Cells(row, colItemName).Value = itemText         ' Put all text in the item name column
+                    itemNumbers = ""
+                    itemName = itemText
                 End If
+                
+                ' Fill in the template cells according to your specific layout
+                tempWs.Cells(row, colPosition).Value = position
+                tempWs.Cells(row, colItemNumbers).Value = itemNumbers   ' Goes in column B (merged B-D)
+                tempWs.Cells(row, colItemName).Value = itemName         ' Goes in column E (merged E-F)
+                
+                ' Make sure to delete any existing merged cells before merging
+                On Error Resume Next
+                If tempWs.Cells(row, colItemNumbers).MergeCells Then
+                    tempWs.Cells(row, colItemNumbers).MergeArea.UnMerge
+                End If
+                If tempWs.Cells(row, colItemName).MergeCells Then
+                    tempWs.Cells(row, colItemName).MergeArea.UnMerge
+                End If
+                On Error GoTo ErrorHandler
+                
+                ' Merge the cells for item numbers (B-D)
+                tempWs.Range(tempWs.Cells(row, colItemNumbers), tempWs.Cells(row, colItemNumbers + 2)).Merge
+                
+                ' Merge the cells for item name (E-F)
+                tempWs.Range(tempWs.Cells(row, colItemName), tempWs.Cells(row, colItemName + 1)).Merge
+                
+                ' Set the alignment and formatting for item numbers (left-aligned, vertically centered)
+                With tempWs.Cells(row, colItemNumbers)
+                    .HorizontalAlignment = xlLeft
+                    .VerticalAlignment = xlCenter
+                    .WrapText = False ' Ensure text doesn't wrap
+                End With
+                
+                ' Set the alignment and formatting for item name (left-aligned, vertically centered, bold)
+                With tempWs.Cells(row, colItemName)
+                    .HorizontalAlignment = xlLeft
+                    .VerticalAlignment = xlCenter
+                    .Font.Bold = True
+                    .WrapText = True ' Allow wrapping for longer item names
+                End With
                 
                 ' Insert a new row for the next item if there are more
                 If i < UBound(items) Then
@@ -928,6 +1137,36 @@ ErrorHandler:
         errorWorkbook.Close SaveChanges:=False
     End If
 End Sub
+
+' Helper function to check if a cell is part of a merged range
+Function IsMerged(cell As Range) As Boolean
+    On Error Resume Next
+    IsMerged = cell.MergeCells
+    On Error GoTo 0
+End Function
+
+' Helper function to clean text and remove unwanted characters
+Function CleanText(text As String) As String
+    Dim cleanedText As String
+    cleanedText = text
+    
+    ' Remove line breaks and tabs
+    cleanedText = Replace(cleanedText, vbCr, " ")
+    cleanedText = Replace(cleanedText, vbLf, " ")
+    cleanedText = Replace(cleanedText, vbCrLf, " ")
+    cleanedText = Replace(cleanedText, vbTab, " ")
+    
+    ' Replace multiple spaces with a single space
+    Do While InStr(cleanedText, "  ") > 0
+        cleanedText = Replace(cleanedText, "  ", " ")
+    Loop
+    
+    ' Trim leading and trailing spaces
+    cleanedText = Trim(cleanedText)
+    
+    CleanText = cleanedText
+End Function
+
 
 Function FormatItemsList(itemsText As String, artikelTypen As String) As String
     ' Format the items list combining Packstück Artikeltypen and Warenbeschreibung
