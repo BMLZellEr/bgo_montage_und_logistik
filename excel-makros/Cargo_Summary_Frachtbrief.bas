@@ -708,6 +708,14 @@ Sub CreateStopFreightPDFFromTemplate(ws As Worksheet, rowNum As Long, tourNumber
     Dim deliveryDate As String, serviceType As String
     Dim abInfo As String, buildingInfo As String, importantInfo As String, deliveryInfo As String
     Dim stopWeight As Double, stopVolume As Double, montagezeit As Double
+    Dim totalQuantity As String
+    
+
+    ' Get the total quantity from column AI (35)
+    totalQuantity = ""
+    If Not IsEmpty(ws.Cells(rowNum, 35).Value) Then ' Column AI - Stückzahl_Gesamt
+        totalQuantity = CStr(ws.Cells(rowNum, 35).Value)
+    End If
     
     ' Check if columns exist before trying to access
     artikelTypen = ""
@@ -920,186 +928,224 @@ Sub CreateStopFreightPDFFromTemplate(ws As Worksheet, rowNum As Long, tourNumber
     
     ' Process Artikel data - using the artikelTypen and warenText from the data
     If Len(warenText) > 0 Then
-        ' Split and prepare artikelTypen if available
-        Dim positionArr() As String
-        Dim positionCount As Long
-        positionCount = 0
-        
-        If Len(artikelTypen) > 0 Then
-            If InStr(artikelTypen, ",") > 0 Then
-                positionArr = Split(artikelTypen, ",")
-                positionCount = UBound(positionArr) + 1
-            Else
-                ReDim positionArr(0)
-                positionArr(0) = artikelTypen
-                positionCount = 1
-            End If
+    ' Split and prepare artikelTypen if available
+    Dim positionArr() As String
+    Dim positionCount As Long
+    positionCount = 0
+    
+    If Len(artikelTypen) > 0 Then
+        If InStr(artikelTypen, ",") > 0 Then
+            positionArr = Split(artikelTypen, ",")
+            positionCount = UBound(positionArr) + 1
+        Else
+            ReDim positionArr(0)
+            positionArr(0) = artikelTypen
+            positionCount = 1
         End If
+    End If
+    
+    ' Split the items by the separator
+    Dim items() As String
+    items = Split(warenText, "----------")
+    
+    ' Current row for item insertion
+    row = itemTableRow
+    
+    ' Get column indices for the required fields
+    Dim colPosition As Long, colQuantity As Long, colItemNumbers As Long, colItemName As Long, colIcon As Long
+    
+    ' Updated column positions (start at 1)
+    colPosition = 1     ' B: Position
+    colItemNumbers = 2  ' C-D are merged for item numbers
+    colItemName = 5     ' E-F are merged for item name
+    colQuantity = 7     ' A: Stückzahl Gesamt
+    colIcon = 8         ' G is for Icon
+    
+    ' First, count how many items we'll have
+    Dim itemCount As Long
+    itemCount = 0
+    
+    For i = 0 To UBound(items)
+        If Len(Trim(items(i))) > 0 Then
+            itemCount = itemCount + 1
+        End If
+    Next i
+    
+    ' Process each item
+    For i = 0 To UBound(items)
+        Dim itemText As String
+        itemText = Trim(items(i))
         
-        ' Split the items by the separator
-        Dim items() As String
-        items = Split(warenText, "----------")
+        ' Clean the item text - remove any excessive whitespace, tabs, or line breaks
+        itemText = CleanText(itemText)
         
-        ' Current row for item insertion
-        row = itemTableRow
-        
-        ' Get column indices for the 3 required fields
-        Dim colPosition As Long, colItemNumbers As Long, colItemName As Long, colIcon As Long
-        
-        ' Default column positions (start at 1)
-        colPosition = 1
-        colItemNumbers = 2   ' B-D are merged for item numbers
-        colItemName = 5      ' E-F are merged for item name (starts at E)
-        colIcon = 7          ' G is for Icon
-        
-        ' Process each item
-        For i = 0 To UBound(items)
-            Dim itemText As String
-            itemText = Trim(items(i))
+        If Len(itemText) > 0 Then
+            ' Get position for this item if available
+            Dim position As String
+            position = ""
             
-            ' Clean the item text - remove any excessive whitespace, tabs, or line breaks
-            itemText = CleanText(itemText)
+            If i < positionCount Then
+                position = Trim(positionArr(i))
+            End If
             
-            If Len(itemText) > 0 Then
-                ' Get position for this item if available
-                Dim position As String
-                position = ""
+            ' Parse the item data - split by pipe character
+            If InStr(itemText, "|") > 0 Then
+                Dim parts() As String
+                parts = Split(itemText, "|")
                 
-                If i < positionCount Then
-                    position = Trim(positionArr(i))
-                End If
+                ' Clean each part
+                For j = 0 To UBound(parts)
+                    parts(j) = Trim(parts(j))
+                Next j
                 
-                ' Parse the item data - split by pipe character
-                If InStr(itemText, "|") > 0 Then
-                    Dim parts() As String
-                    parts = Split(itemText, "|")
+                ' Format for the specific column layout:
+                ' Column A: Position (e.g., "100", "200", etc.)
+                ' Column B: Stückzahl (merged for all items)
+                ' Columns B-D merged: Item Numbers (e.g., "33504 | 2095000 | 9613924 | MXRC6AP")
+                ' Columns E-F merged: Item Name (e.g., "MOTION Auflagepolster")
+                ' Column G: Icon (empty)
+                
+                Dim itemNumbers As String
+                Dim itemName As String
+                
+                ' Default values
+                itemNumbers = ""
+                itemName = ""
+                
+                If UBound(parts) >= 3 Then
+                    ' Get the first 3 item numbers
+                    itemNumbers = parts(0) & " | " & parts(1) & " | " & parts(2)
                     
-                    ' Clean each part
-                    For j = 0 To UBound(parts)
-                        parts(j) = Trim(parts(j))
-                    Next j
+                    ' THE FIX: Special handling for 4th part (parts(3))
+                    ' Check if 4th part contains multiple spaces (indicating a split point)
+                    Dim part4 As String
+                    part4 = parts(3)
                     
-                    ' Format for the specific column layout:
-                    ' Column A: Position (e.g., "100", "200", etc.)
-                    ' Columns B-D merged: Item Numbers (e.g., "33504 | 2095000 | 9613924 | MXRC6AP")
-                    ' Columns E-F merged: Item Name (e.g., "MOTION Auflagepolster")
-                    ' Column G: Icon (empty)
-                    
-                    Dim itemNumbers As String
-                    Dim itemName As String
-                    
-                    ' Default values
-                    itemNumbers = ""
-                    itemName = ""
-                    
-                    If UBound(parts) >= 3 Then
-                        ' Get the first 3 item numbers
-                        itemNumbers = parts(0) & " | " & parts(1) & " | " & parts(2)
+                    ' Look for product codes in the 4th part
+                    If IsNumeric(Left(part4, 1)) Then
+                        ' If it starts with a number, it's likely a product code
+                        itemNumbers = itemNumbers & " | " & part4
                         
-                        ' THE FIX: Special handling for 4th part (parts(3))
-                        ' Check if 4th part contains multiple spaces (indicating a split point)
-                        Dim part4 As String
-                        part4 = parts(3)
-                        
-                        ' Look for product codes in the 4th part
-                        If IsNumeric(Left(part4, 1)) Then
-                            ' If it starts with a number, it's likely a product code
-                            itemNumbers = itemNumbers & " | " & part4
-                            
-                            ' Check if there are additional parts for item name
-                            If UBound(parts) >= 4 Then
-                                itemName = parts(4)
-                                ' Add any additional parts to item name
-                                For j = 5 To UBound(parts)
-                                    itemName = itemName & " " & parts(j)
-                                Next j
-                            End If
-                        Else
-                            ' If it doesn't start with a number, it's likely the start of the item name
-                            itemName = part4
+                        ' Check if there are additional parts for item name
+                        If UBound(parts) >= 4 Then
+                            itemName = parts(4)
                             ' Add any additional parts to item name
-                            For j = 4 To UBound(parts)
+                            For j = 5 To UBound(parts)
                                 itemName = itemName & " " & parts(j)
                             Next j
                         End If
                     Else
-                        ' Not enough parts, just distribute what we have
-                        If UBound(parts) >= 1 Then
-                            ' At least 2 parts - use first part for numbers, second for name
-                            itemNumbers = parts(0)
-                            itemName = parts(1)
-                            If UBound(parts) >= 2 Then
-                                itemName = itemName & " " & parts(2)
-                            End If
-                        Else
-                            ' Only one part - use it as numbers
-                            itemNumbers = parts(0)
-                        End If
+                        ' If it doesn't start with a number, it's likely the start of the item name
+                        itemName = part4
+                        ' Add any additional parts to item name
+                        For j = 4 To UBound(parts)
+                            itemName = itemName & " " & parts(j)
+                        Next j
                     End If
-                    
-                    ' Remove any remaining pipe characters in the item name
-                    itemName = Replace(itemName, "|", " ")
                 Else
-                    ' Simple case - no pipe separator
-                    itemNumbers = ""
-                    itemName = itemText
+                    ' Not enough parts, just distribute what we have
+                    If UBound(parts) >= 1 Then
+                        ' At least 2 parts - use first part for numbers, second for name
+                        itemNumbers = parts(0)
+                        itemName = parts(1)
+                        If UBound(parts) >= 2 Then
+                            itemName = itemName & " " & parts(2)
+                        End If
+                    Else
+                        ' Only one part - use it as numbers
+                        itemNumbers = parts(0)
+                    End If
                 End If
                 
-                ' Fill in the template cells according to your specific layout
-                tempWs.Cells(row, colPosition).Value = position
-                tempWs.Cells(row, colItemNumbers).Value = itemNumbers   ' Goes in column B (merged B-D)
-                tempWs.Cells(row, colItemName).Value = itemName         ' Goes in column E (merged E-F)
-                
-                ' Make sure to delete any existing merged cells before merging
-                On Error Resume Next
-                If tempWs.Cells(row, colItemNumbers).MergeCells Then
-                    tempWs.Cells(row, colItemNumbers).MergeArea.UnMerge
-                End If
-                If tempWs.Cells(row, colItemName).MergeCells Then
-                    tempWs.Cells(row, colItemName).MergeArea.UnMerge
-                End If
-                On Error GoTo ErrorHandler
-                
-                ' Merge the cells for item numbers (B-D)
-                tempWs.Range(tempWs.Cells(row, colItemNumbers), tempWs.Cells(row, colItemNumbers + 2)).Merge
-                
-                ' Merge the cells for item name (E-F)
-                tempWs.Range(tempWs.Cells(row, colItemName), tempWs.Cells(row, colItemName + 1)).Merge
-                
-                ' Set the alignment and formatting for item numbers (left-aligned, vertically centered)
-                With tempWs.Cells(row, colItemNumbers)
-                    .HorizontalAlignment = xlLeft
-                    .VerticalAlignment = xlCenter
-                    .WrapText = False ' Ensure text doesn't wrap
-                End With
-                
-                ' Set the alignment and formatting for item name (left-aligned, vertically centered, bold)
-                With tempWs.Cells(row, colItemName)
-                    .HorizontalAlignment = xlLeft
-                    .VerticalAlignment = xlCenter
-                    .Font.Bold = True
-                    .WrapText = True ' Allow wrapping for longer item names
-                End With
-                
-                ' Insert a new row for the next item if there are more
-                If i < UBound(items) Then
-                    tempWs.Rows(row + 1).Insert Shift:=xlDown
-                    
-                    ' Copy formatting from the current row
-                    tempWs.Rows(row).Copy
-                    tempWs.Rows(row + 1).PasteSpecial xlPasteFormats
-                    Application.CutCopyMode = False
-                End If
-                
-                row = row + 1
+                ' Remove any remaining pipe characters in the item name
+                itemName = Replace(itemName, "|", " ")
+            Else
+                ' Simple case - no pipe separator
+                itemNumbers = ""
+                itemName = itemText
             End If
-        Next i
-    Else
-        ' No item data, just clear the placeholders in the first item row
-        tempWs.Cells(itemTableRow, colPosition).Value = ""
-        tempWs.Cells(itemTableRow, colItemNumbers).Value = ""
-        tempWs.Cells(itemTableRow, colItemName).Value = ""
+            
+            ' Fill in the template cells according to your specific layout
+            tempWs.Cells(row, colPosition).Value = position
+            
+            ' Only put total quantity in the first item row
+            If i = 0 Then
+                tempWs.Cells(row, colQuantity).Value = totalQuantity
+            Else
+                tempWs.Cells(row, colQuantity).Value = ""
+            End If
+            
+            tempWs.Cells(row, colItemNumbers).Value = itemNumbers   ' Goes in column C (merged C-D)
+            tempWs.Cells(row, colItemName).Value = itemName         ' Goes in column E (merged E-F)
+            
+            ' Make sure to delete any existing merged cells before merging
+            On Error Resume Next
+            If tempWs.Cells(row, colItemNumbers).MergeCells Then
+                tempWs.Cells(row, colItemNumbers).MergeArea.UnMerge
+            End If
+            If tempWs.Cells(row, colItemName).MergeCells Then
+                tempWs.Cells(row, colItemName).MergeArea.UnMerge
+            End If
+            On Error GoTo ErrorHandler
+            
+            ' Merge the cells for item numbers (C-D)
+            tempWs.Range(tempWs.Cells(row, colItemNumbers), tempWs.Cells(row, colItemNumbers + 1)).Merge
+            
+            ' Merge the cells for item name (E-F)
+            tempWs.Range(tempWs.Cells(row, colItemName), tempWs.Cells(row, colItemName + 1)).Merge
+            
+            ' Set the alignment and formatting for item numbers (left-aligned, vertically centered)
+            With tempWs.Cells(row, colItemNumbers)
+                .HorizontalAlignment = xlLeft
+                .VerticalAlignment = xlCenter
+                .WrapText = False ' Ensure text doesn't wrap
+            End With
+            
+            ' Set the alignment and formatting for item name (left-aligned, vertically centered, bold)
+            With tempWs.Cells(row, colItemName)
+                .HorizontalAlignment = xlLeft
+                .VerticalAlignment = xlCenter
+                .Font.Bold = True
+                .WrapText = True ' Allow wrapping for longer item names
+            End With
+            
+            ' Insert a new row for the next item if there are more
+            If i < UBound(items) And i < itemCount - 1 Then
+                tempWs.Rows(row + 1).Insert Shift:=xlDown
+                
+                ' Copy formatting from the current row
+                tempWs.Rows(row).Copy
+                tempWs.Rows(row + 1).PasteSpecial xlPasteFormats
+                Application.CutCopyMode = False
+            End If
+            
+            row = row + 1
+        End If
+    Next i
+    
+    ' After all items are added, merge the Stückzahl column
+    If itemCount > 1 Then
+        Dim firstRow As Long, lastRow As Long
+        firstRow = itemTableRow
+        lastRow = firstRow + itemCount - 1
+        
+        ' Merge the Stückzahl cells vertically
+        tempWs.Range(tempWs.Cells(firstRow, colQuantity), tempWs.Cells(lastRow, colQuantity)).Merge
+        
+        ' Center the quantity both horizontally and vertically
+        With tempWs.Cells(firstRow, colQuantity)
+            .HorizontalAlignment = xlCenter
+            .VerticalAlignment = xlCenter
+            .Font.Bold = True
+        End With
     End If
+Else
+    ' No item data, just clear the placeholders in the first item row
+    tempWs.Cells(itemTableRow, colPosition).Value = ""
+    tempWs.Cells(itemTableRow, colQuantity).Value = ""
+    tempWs.Cells(itemTableRow, colItemNumbers).Value = ""
+    tempWs.Cells(itemTableRow, colItemName).Value = ""
+End If
     
     ' Save as PDF
     pdfFileName = pdfPath & "Tour_" & tourNumber & "_Stop_" & stopNum & "_Frachtbrief.pdf"
