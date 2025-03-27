@@ -9,7 +9,6 @@
 - **💡 Make Cargo-Support => Excel-Tours Programm that adds Missing Data**
 - **💡 Got hint from Ante about Exoport of CS_DATA**
 
-
 ## SC WNeudorf Roman Liste Fixes!!
 - **💡 2 BML + $HELMUT_ZAHL M**
 - **💡 Falls Montage mehrere Tage geht**
@@ -18,6 +17,25 @@
 - **💡 Farben aufpassen => Für Tage verwenden nicht gleich**
 - **💡 SC für Lager-Lieferung**
 - **💡 Speditions Kusztrich => Komplett Weg**
+
+## Frachtbriefe & Touren-Summen-Blätter
+
+### Summenblätter
+- Add AB-NR per Stop
+- Fix Stop-Times to round down to full hour.
+
+### Frachtbriefe:
+- Gesamtstückzahl FUCK
+- Add Icons
+
+### SC-Leiter
+- Florian will Teams Nachricht bei Update der PDF's 
+
+### NOS
+- MICHAEL DAVIS von NOS => Data Guy
+- Position_Nummer => Gesamtstückzahl ??? 
+- Artikel-Liste ?? 
+
 
 ## Tipps für Excel-Listen: [Excel_Listen_Immer_pro_KW$$]
 - Werden **LIVE am Onedrive Ordner bearbeitet** 💀
