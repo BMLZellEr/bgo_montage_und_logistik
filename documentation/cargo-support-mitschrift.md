@@ -73,6 +73,7 @@
 - Mitarbeiter/Montage-Zeit bei Geteilten-Touren (LAGER-Touren) fucks date calc. for WABS
 - Datensätze werden zurück auf ÜBergabe_DAtum geschoben
 - Doppelklick Menü deaktivireren => Checkbox => Nervig
+- BEIM TEILEN (SPLITTEN) BLEINBT FIXTERMIN NUR IN DER SC TOUR
 
 ## Programmstart & Filter der Aufträge
 - Filter in der DB-Ansicht ist oben links => Keine "KW" => Montag bis Sonntag der gewünschten KW auswählen.
