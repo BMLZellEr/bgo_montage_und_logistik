@@ -310,28 +310,30 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
     Dim firstStopRow As Long
     firstStopRow = tourStops(1) ' Get the first stop row
     
+    ' Get the full tour name from column B without parsing
+    Dim fullTourName As String
+    fullTourName = ""
+    If Not IsEmpty(ws.Cells(firstStopRow, 2).Value) Then ' Column B
+        fullTourName = CStr(ws.Cells(firstStopRow, 2).Value)
+    Else
+        fullTourName = tourName ' Use passed tourName as fallback
+    End If
+    
     ' Extract vehicle info (Column Y)
     vehicleInfo = ""
     If Not IsEmpty(ws.Cells(firstStopRow, 25).Value) Then ' Column Y - Kennzeichen
         vehicleInfo = ws.Cells(firstStopRow, 25).Value
     End If
     
-    ' Extract delivery date (Column P or Q)
+    ' Get delivery date from System Zustelldatum (Column R - 18) - same as where we get times
     deliveryDate = ""
-    If Not IsEmpty(ws.Cells(firstStopRow, 16).Value) Then ' Column P - Liefertag_System
-        Dim deliveryDateValue As Date
-        If IsDate(ws.Cells(firstStopRow, 16).Value) Then
-            deliveryDateValue = ws.Cells(firstStopRow, 16).Value
-            deliveryDate = Format(deliveryDateValue, "dddd, dd.MM.yyyy")
+    If Not IsEmpty(ws.Cells(firstStopRow, 18).Value) Then ' Column R - System Zustelldatum
+        If IsDate(ws.Cells(firstStopRow, 18).Value) Then
+            ' Format the date part only
+            deliveryDate = Format(ws.Cells(firstStopRow, 18).Value, "dddd, dd.MM.yyyy")
         Else
-            deliveryDate = ws.Cells(firstStopRow, 16).Value
-        End If
-    ElseIf Not IsEmpty(ws.Cells(firstStopRow, 17).Value) Then ' Column Q - Leistungsdatum
-        If IsDate(ws.Cells(firstStopRow, 17).Value) Then
-            deliveryDateValue = ws.Cells(firstStopRow, 17).Value
-            deliveryDate = Format(deliveryDateValue, "dddd, dd.MM.yyyy")
-        Else
-            deliveryDate = ws.Cells(firstStopRow, 17).Value
+            ' If it's not a valid date, use as is
+            deliveryDate = CStr(ws.Cells(firstStopRow, 18).Value)
         End If
     End If
     
@@ -351,7 +353,8 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
     End If
     
     ' Replace placeholders in the template
-    tempWs.UsedRange.Replace "[[TOUR_NAME]]", tourName, xlWhole
+    ' Use fullTourName instead of parsed tourName
+    tempWs.UsedRange.Replace "[[TOUR_NAME]]", fullTourName, xlWhole
     tempWs.UsedRange.Replace "[[TOUR_NUMBER]]", tourNumber, xlWhole
     tempWs.UsedRange.Replace "[[Tour_DATE]]", deliveryDate, xlWhole
     tempWs.UsedRange.Replace "[[VEHICLE]]", vehicleInfo, xlWhole
@@ -384,7 +387,7 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
     colVolumen = 3
     colGewicht = 4
     colMontZeit = 5
-    colStopZeit = 6  ' New column for Stop-Zeit
+    colStopZeit = 6  ' Default column for Avis-Zeit (formerly Stop-Zeit)
     
     ' Locate column headers to ensure we're placing data in the right columns
     For i = 1 To tempWs.Cells(dataStartRow - 1, tempWs.Columns.count).End(xlToLeft).Column
@@ -399,9 +402,17 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
                 colGewicht = i
             Case "Mont-Zeit"
                 colMontZeit = i
-            Case "Stop-Zeit"
+            Case "Stop-Zeit", "Avis-Zeit"  ' Check for both old and new column names
                 colStopZeit = i
         End Select
+    Next i
+    
+    ' Change the column header from "Stop-Zeit" to "Avis-Zeit" if it exists
+    For i = 1 To tempWs.Cells(dataStartRow - 1, tempWs.Columns.count).End(xlToLeft).Column
+        If Trim(tempWs.Cells(dataStartRow - 1, i).Value) = "Stop-Zeit" Then
+            tempWs.Cells(dataStartRow - 1, i).Value = "Avis-Zeit"
+            Exit For
+        End If
     Next i
     
     ' Clear any existing stop data
@@ -484,10 +495,17 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
                 ' Calculate end time (start time + 3 hours)
                 Dim startTimeValue As Date, endTimeValue As Date
                 startTimeValue = CDate(Format(ws.Cells(currentRow, 18).Value, "hh:mm"))
+                
+                ' Round down the start time to the nearest hour
+                Dim startHour As Integer
+                startHour = Hour(startTimeValue)
+                startTimeValue = DateSerial(Year(Date), Month(Date), Day(Date)) + TimeSerial(startHour, 0, 0)
+                
+                ' Calculate end time (start time + 3 hours) based on the rounded down time
                 endTimeValue = DateAdd("h", 3, startTimeValue)
                 
                 ' Format the time range
-                stopZeitRange = deliveryTime & " - " & Format(endTimeValue, "hh:mm")
+                stopZeitRange = Format(startTimeValue, "hh:mm") & " - " & Format(endTimeValue, "hh:mm")
             End If
         End If
         
@@ -521,7 +539,7 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
         tempWs.Cells(stopRow, colGewicht).Value = Format(weight, "#,##0.00") & " kg"
         tempWs.Cells(stopRow, colMontZeit).Value = Format(montagezeit, "#,##0.00") & " h"
         
-        ' Add the new Stop-Zeit column value
+        ' Add the Avis-Zeit column value
         If colStopZeit > 0 Then
             tempWs.Cells(stopRow, colStopZeit).Value = stopZeitRange
         End If
