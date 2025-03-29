@@ -1,6 +1,6 @@
 Sub ProcessToursAndCreatePDFs()
     ' Tour Processing Macro - Template-based version with PDF generation
-    ' Version 3.0 - Uses predefined Excel templates for PDF generation
+    ' Version 4.0 - Now with Multi-Site Pdf handling
     
     On Error GoTo ErrorHandler
     
@@ -275,17 +275,15 @@ Sub CreateTourPDFFromTemplate(ws As Worksheet, tourNumber As String, tourName As
 End Sub
 
 Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tourName As String, pdfPath As String, totalWeight As Double, totalVolume As Double, tourStops As Collection)
-    ' Create a summary PDF for all stops in a tour using the template
-    Dim tempWs As Worksheet
-    Dim templateWs As Worksheet
-    Dim i As Long, j As Long
-    Dim pdfFileName As String
-    Dim vehicleInfo As String, deliveryDate As String, tourDateFormatted As String
-    Dim stopRow As Long
-    Dim totalMontagezeit As Double
-    Dim tourRoute As String, totalDistance As String
+    ' Create a multi-page summary PDF for all stops in a tour using the template
+    On Error GoTo ErrorHandler
     
-    ' Reference the template worksheet - make sure to use the SAME workbook where the data is
+    ' Create a new workbook for all the pages
+    Dim tempWb As Workbook
+    Set tempWb = Workbooks.Add
+    
+    ' Reference the template worksheet
+    Dim templateWs As Worksheet
     On Error Resume Next
     Set templateWs = ws.Parent.Worksheets("Tour_Summary_Template")
     
@@ -298,53 +296,50 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
             Exit Sub
         End If
     End If
-    
     On Error GoTo ErrorHandler
     
-    ' Create a copy of the template
-    templateWs.Copy
-    Set tempWs = ActiveSheet
-    tempWs.Name = "TempPDF_TourSummary"
+    ' Get tour information
+    Dim firstStopRow As Long, fullTourName As String
+    Dim vehicleInfo As String, deliveryDate As String
+    Dim tourRoute As String, totalDistance As String
+    Dim totalMontagezeit As Double
     
-    ' Get additional information from the first row of this tour
-    Dim firstStopRow As Long
-    firstStopRow = tourStops(1) ' Get the first stop row
+    firstStopRow = tourStops(1)
     
-    ' Get the full tour name from column B without parsing
-    Dim fullTourName As String
+    ' Get full tour name
     fullTourName = ""
-    If Not IsEmpty(ws.Cells(firstStopRow, 2).Value) Then ' Column B
+    If Not IsEmpty(ws.Cells(firstStopRow, 2).Value) Then
         fullTourName = CStr(ws.Cells(firstStopRow, 2).Value)
-    Else
-        fullTourName = tourName ' Use passed tourName as fallback
+        While Right(fullTourName, 1) = "."
+            fullTourName = Left(fullTourName, Len(fullTourName) - 1)
+        Wend
     End If
     
-    ' Extract vehicle info (Column Y)
+    ' Get vehicle info
     vehicleInfo = ""
-    If Not IsEmpty(ws.Cells(firstStopRow, 25).Value) Then ' Column Y - Kennzeichen
+    If Not IsEmpty(ws.Cells(firstStopRow, 25).Value) Then
         vehicleInfo = ws.Cells(firstStopRow, 25).Value
     End If
     
-    ' Get delivery date from System Zustelldatum (Column R - 18) - same as where we get times
+    ' Get delivery date
     deliveryDate = ""
-    If Not IsEmpty(ws.Cells(firstStopRow, 18).Value) Then ' Column R - System Zustelldatum
+    If Not IsEmpty(ws.Cells(firstStopRow, 18).Value) Then
         If IsDate(ws.Cells(firstStopRow, 18).Value) Then
-            ' Format the date part only
             deliveryDate = Format(ws.Cells(firstStopRow, 18).Value, "dddd, dd.MM.yyyy")
         Else
-            ' If it's not a valid date, use as is
             deliveryDate = CStr(ws.Cells(firstStopRow, 18).Value)
         End If
     End If
     
-    ' Get route and total distance information (Columns AZ and BA)
+    ' Get route info
     tourRoute = ""
-    If Not IsEmpty(ws.Cells(firstStopRow, 52).Value) Then ' Column AZ - Tourstrecke
+    If Not IsEmpty(ws.Cells(firstStopRow, 52).Value) Then
         tourRoute = ws.Cells(firstStopRow, 52).Value
     End If
     
+    ' Get distance
     totalDistance = ""
-    If Not IsEmpty(ws.Cells(firstStopRow, 53).Value) Then ' Column BA - Routenplaner Gesamtkilometer
+    If Not IsEmpty(ws.Cells(firstStopRow, 53).Value) Then
         If IsNumeric(ws.Cells(firstStopRow, 53).Value) Then
             totalDistance = Format(ws.Cells(firstStopRow, 53).Value, "#,##0.00") & " km"
         Else
@@ -352,354 +347,475 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
         End If
     End If
     
-    ' Replace placeholders in the template
-    ' Use fullTourName instead of parsed tourName
-    tempWs.UsedRange.Replace "[[TOUR_NAME]]", fullTourName, xlWhole
-    tempWs.UsedRange.Replace "[[TOUR_NUMBER]]", tourNumber, xlWhole
-    tempWs.UsedRange.Replace "[[Tour_DATE]]", deliveryDate, xlWhole
-    tempWs.UsedRange.Replace "[[VEHICLE]]", vehicleInfo, xlWhole
-    tempWs.UsedRange.Replace "[[Tourstrecke]]", tourRoute, xlWhole
-    tempWs.UsedRange.Replace "[[Tour_Ges_Kilometer]]", totalDistance, xlWhole
-    
-    ' Find the data row start position (row where stop data begins)
-    Dim dataStartRow As Long
-    dataStartRow = 0
-    For i = 1 To tempWs.UsedRange.Rows.count
-        If InStr(1, tempWs.Cells(i, 1).Value, "[[Stop") > 0 Or _
-           InStr(1, tempWs.Cells(i, 1).Value, "Stopps") > 0 Then
-            dataStartRow = i + 1 ' Start one row below the header
-            Exit For
-        End If
-    Next i
-    
-    If dataStartRow = 0 Then
-        dataStartRow = 9 ' Default if placeholder not found
-    End If
-    
-    ' Current row to add stop data to
-    stopRow = dataStartRow
+    ' Calculate total montagezeit
     totalMontagezeit = 0
-    
-    ' Find column indices in template
-    Dim colStop As Long, colKunde As Long, colVolumen As Long, colGewicht As Long, colMontZeit As Long, colStopZeit As Long
-    colStop = 1    ' Default column positions
-    colKunde = 2
-    colVolumen = 3
-    colGewicht = 4
-    colMontZeit = 5
-    colStopZeit = 6  ' Default column for Avis-Zeit (formerly Stop-Zeit)
-    
-    ' Locate column headers to ensure we're placing data in the right columns
-    For i = 1 To tempWs.Cells(dataStartRow - 1, tempWs.Columns.count).End(xlToLeft).Column
-        Select Case Trim(tempWs.Cells(dataStartRow - 1, i).Value)
-            Case "Stopps"
-                colStop = i
-            Case "Kunden"
-                colKunde = i
-            Case "Volumen"
-                colVolumen = i
-            Case "Gewicht"
-                colGewicht = i
-            Case "Mont-Zeit"
-                colMontZeit = i
-            Case "Stop-Zeit", "Avis-Zeit"  ' Check for both old and new column names
-                colStopZeit = i
-        End Select
-    Next i
-    
-    ' Change the column header from "Stop-Zeit" to "Avis-Zeit" if it exists
-    For i = 1 To tempWs.Cells(dataStartRow - 1, tempWs.Columns.count).End(xlToLeft).Column
-        If Trim(tempWs.Cells(dataStartRow - 1, i).Value) = "Stop-Zeit" Then
-            tempWs.Cells(dataStartRow - 1, i).Value = "Avis-Zeit"
-            Exit For
-        End If
-    Next i
-    
-    ' Clear any existing stop data
-    Dim lastRow As Long
-    lastRow = tempWs.Cells(tempWs.Rows.count, colStop).End(xlUp).row
-    If lastRow > dataStartRow Then
-        tempWs.Rows(dataStartRow & ":" & lastRow).Delete
-    End If
-    
-    Dim stopNum As Long
-    Dim recipientName As String, city As String
-    Dim weight As Double, volume As Double, montagezeit As Double
-    Dim deliveryTime As String, stopZeitRange As String
-    
-    ' Process each stop
+    Dim j As Long
     For j = 1 To tourStops.count
-        Dim currentRow As Long
+        Dim currentRow As Long, montagezeit As Double
         currentRow = tourStops(j)
-        
-        stopNum = ws.Cells(currentRow, 3).Value ' Column C - Stop number
-        
-        ' Get stop data
-        recipientName = ""
-        If Not IsEmpty(ws.Cells(currentRow, 36).Value) Then ' Column AI - Empfänger
-            recipientName = ws.Cells(currentRow, 36).Value
-        End If
-        
-        ' Get address information
-        Dim recipientAddress As String, recipientCity As String, recipientPostcode As String
-        recipientAddress = ""
-        recipientCity = ""
-        recipientPostcode = ""
-        
-        If Not IsEmpty(ws.Cells(currentRow, 37).Value) Then ' Column AJ - Empf. Str.
-            recipientAddress = ws.Cells(currentRow, 37).Value
-        End If
-        
-        If Not IsEmpty(ws.Cells(currentRow, 38).Value) Then ' Column AK - Empf. Ort
-            recipientCity = ws.Cells(currentRow, 38).Value
-        End If
-        
-        If Not IsEmpty(ws.Cells(currentRow, 39).Value) Then ' Column AL - Empf. Plz
-            recipientPostcode = ws.Cells(currentRow, 39).Value
-        End If
-        
-        ' Format the address line
-        Dim fullAddress As String
-        fullAddress = recipientAddress
-        If Len(recipientPostcode) > 0 Or Len(recipientCity) > 0 Then
-            If Len(fullAddress) > 0 Then
-                fullAddress = fullAddress & ", "
-            End If
-            fullAddress = fullAddress & recipientPostcode & " " & recipientCity
-        End If
-        
-        weight = 0
-        If IsNumeric(ws.Cells(currentRow, 4).Value) Then ' Column D
-            weight = ws.Cells(currentRow, 4).Value
-        End If
-        
-        volume = 0
-        If IsNumeric(ws.Cells(currentRow, 5).Value) Then ' Column E
-            volume = ws.Cells(currentRow, 5).Value
-        End If
-        
         montagezeit = 0
-        If Not IsEmpty(ws.Cells(currentRow, 54).Value) And IsNumeric(ws.Cells(currentRow, 54).Value) Then ' Column BB or equivalent
-            montagezeit = ws.Cells(currentRow, 54).Value
+        If Not IsEmpty(ws.Cells(currentRow, 54).Value) And IsNumeric(ws.Cells(currentRow, 54).Value) Then
+            montagezeit = CDbl(ws.Cells(currentRow, 54).Value)
         End If
-        
-        ' Extract delivery time from System Zustelldatum (Column R or 18)
-        deliveryTime = ""
-        stopZeitRange = ""
-        
-        If Not IsEmpty(ws.Cells(currentRow, 18).Value) Then ' Column R - System Zustelldatum
-            If IsDate(ws.Cells(currentRow, 18).Value) Then
-                ' Extract only the time part
-                deliveryTime = Format(ws.Cells(currentRow, 18).Value, "hh:mm")
-                
-                ' Calculate end time (start time + 3 hours)
-                Dim startTimeValue As Date, endTimeValue As Date
-                startTimeValue = CDate(Format(ws.Cells(currentRow, 18).Value, "hh:mm"))
-                
-                ' Round down the start time to the nearest hour
-                Dim startHour As Integer
-                startHour = Hour(startTimeValue)
-                startTimeValue = DateSerial(Year(Date), Month(Date), Day(Date)) + TimeSerial(startHour, 0, 0)
-                
-                ' Calculate end time (start time + 3 hours) based on the rounded down time
-                endTimeValue = DateAdd("h", 3, startTimeValue)
-                
-                ' Format the time range
-                stopZeitRange = Format(startTimeValue, "hh:mm") & " - " & Format(endTimeValue, "hh:mm")
-            End If
-        End If
-        
-        ' Add to total montagezeit
         totalMontagezeit = totalMontagezeit + montagezeit
+    Next j
+    
+    ' Maximum stops per page - carefully limited to avoid merging issues
+    Dim maxStopsPerPage As Long
+    maxStopsPerPage = 12 ' Conservative limit
+    
+    ' Calculate number of pages needed
+    Dim pageCount As Long
+    pageCount = Application.WorksheetFunction.Ceiling(tourStops.count / maxStopsPerPage, 1)
+    
+    ' Process each page as a separate worksheet
+    Dim i As Long
+    For i = 1 To pageCount
+        ' Calculate stops for this page
+        Dim startStop As Long, endStop As Long
+        startStop = ((i - 1) * maxStopsPerPage) + 1
+        endStop = Application.WorksheetFunction.Min(i * maxStopsPerPage, tourStops.count)
         
-        ' Insert two new rows for this stop (or use existing rows for first stop)
-        If j > 1 Then
-            ' Insert two rows at once
-            tempWs.Rows(stopRow & ":" & (stopRow + 1)).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+        ' Copy the template to the new workbook
+        On Error Resume Next
+        templateWs.Copy After:=tempWb.Sheets(tempWb.Sheets.count)
+        
+        If Err.Number <> 0 Then
+            ' If template copy fails, try simpler method
+            Err.Clear
+            tempWb.Sheets.Add After:=tempWb.Sheets(tempWb.Sheets.count)
         End If
+        
+        ' Rename the sheet
+        On Error Resume Next
+        tempWb.Sheets(tempWb.Sheets.count).Name = "Page_" & i
+        If Err.Number <> 0 Then
+            Err.Clear
+        End If
+        On Error GoTo ErrorHandler
+        
+        ' Get the newly created sheet
+        Dim tempWs As Worksheet
+        Set tempWs = tempWb.Sheets(tempWb.Sheets.count)
+        
+        ' Replace header placeholders
+        On Error Resume Next
+        tempWs.UsedRange.Replace "[[TOUR_NAME]]", fullTourName, xlWhole
+        tempWs.UsedRange.Replace "[[TOUR_NUMBER]]", tourNumber & " (Page " & i & " of " & pageCount & ")", xlWhole
+        tempWs.UsedRange.Replace "[[Tour_DATE]]", deliveryDate, xlWhole
+        tempWs.UsedRange.Replace "[[VEHICLE]]", vehicleInfo, xlWhole
+        tempWs.UsedRange.Replace "[[Tourstrecke]]", tourRoute, xlWhole
+        tempWs.UsedRange.Replace "[[Tour_Ges_Kilometer]]", totalDistance, xlWhole
+        Err.Clear
+        On Error GoTo ErrorHandler
+        
+        ' Find where to add stop data
+        Dim dataStartRow As Long
+        dataStartRow = 0
+        For j = 1 To tempWs.UsedRange.Rows.count
+            If InStr(1, tempWs.Cells(j, 1).Value, "[[Stop") > 0 Or _
+               InStr(1, tempWs.Cells(j, 1).Value, "Stopps") > 0 Then
+                dataStartRow = j + 1
+                Exit For
+            End If
+        Next j
+        
+        If dataStartRow = 0 Then
+            dataStartRow = 9 ' Default if not found
+        End If
+        
+        ' Find column indices
+        Dim colStop As Long, colKunde As Long, colVolumen As Long
+        Dim colGewicht As Long, colMontZeit As Long, colStopZeit As Long
+        
+        colStop = 1    ' Default column positions
+        colKunde = 2
+        colVolumen = 3
+        colGewicht = 4
+        colMontZeit = 5
+        colStopZeit = 6
+        
+        ' Locate column headers
+        For j = 1 To tempWs.Cells(dataStartRow - 1, tempWs.Columns.count).End(xlToLeft).Column
+            Select Case Trim(tempWs.Cells(dataStartRow - 1, j).Value)
+                Case "Stopps"
+                    colStop = j
+                Case "Kunden"
+                    colKunde = j
+                Case "Volumen"
+                    colVolumen = j
+                Case "Gewicht"
+                    colGewicht = j
+                Case "Mont-Zeit"
+                    colMontZeit = j
+                Case "Stop-Zeit", "Avis-Zeit"
+                    colStopZeit = j
+            End Select
+        Next j
+        
+        ' Change column header from "Stop-Zeit" to "Avis-Zeit" if needed
+        On Error Resume Next
+        For j = 1 To tempWs.Cells(dataStartRow - 1, tempWs.Columns.count).End(xlToLeft).Column
+            If Trim(tempWs.Cells(dataStartRow - 1, j).Value) = "Stop-Zeit" Then
+                tempWs.Cells(dataStartRow - 1, j).Value = "Avis-Zeit"
+                Exit For
+            End If
+        Next j
+        Err.Clear
+        On Error GoTo ErrorHandler
+        
+        ' Clear existing stop data
+        On Error Resume Next
+        Dim lastRow As Long
+        lastRow = tempWs.Cells(tempWs.Rows.count, colStop).End(xlUp).row
+        If lastRow > dataStartRow Then
+            tempWs.Rows(dataStartRow & ":" & lastRow).Delete
+        End If
+        Err.Clear
+        On Error GoTo ErrorHandler
         
         ' Determine if Kunden column spans multiple columns
-        Dim kundenRange As Range
-        Dim kundenEndCol As Integer
+        Dim kundenEndCol As Long
         kundenEndCol = colKunde
         
-        ' Check if columns B through D should be merged in the template
-        If colKunde = 2 Then ' If Kunden is in column B
-            ' Check if we should merge B-D (typically columns 2-4)
-            kundenEndCol = 4 ' Column D is typically 4
+        If colKunde = 2 Then
+            kundenEndCol = 4
             If kundenEndCol > tempWs.Columns.count Then
                 kundenEndCol = tempWs.Columns.count
             End If
         End If
         
-        ' Fill in the values for name row
-        tempWs.Cells(stopRow, colStop).Value = "Stop " & stopNum
-        tempWs.Cells(stopRow, colKunde).Value = recipientName
-        tempWs.Cells(stopRow, colVolumen).Value = Format(volume, "#,##0.00") & " m³"
-        tempWs.Cells(stopRow, colGewicht).Value = Format(weight, "#,##0.00") & " kg"
-        tempWs.Cells(stopRow, colMontZeit).Value = Format(montagezeit, "#,##0.00") & " h"
+        ' Process stops for this page
+        Dim stopRow As Long
+        stopRow = dataStartRow
         
-        ' Add the Avis-Zeit column value
-        If colStopZeit > 0 Then
-            tempWs.Cells(stopRow, colStopZeit).Value = stopZeitRange
-        End If
-        
-        ' Fill in the address row
-        tempWs.Cells(stopRow + 1, colStop).Value = ""  ' Leave empty for merged cell effect
-        tempWs.Cells(stopRow + 1, colKunde).Value = fullAddress
-        tempWs.Cells(stopRow + 1, colVolumen).Value = ""
-        tempWs.Cells(stopRow + 1, colGewicht).Value = ""
-        tempWs.Cells(stopRow + 1, colMontZeit).Value = ""
-        If colStopZeit > 0 Then
-            tempWs.Cells(stopRow + 1, colStopZeit).Value = ""
-        End If
-        
-        ' Merge the stop number cells across the two rows
-        tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, colStop)).Merge
-        
-        ' Merge the customer name cells horizontally for row 1 (B-D)
-        If kundenEndCol > colKunde Then
-            Set kundenRange = tempWs.Range(tempWs.Cells(stopRow, colKunde), tempWs.Cells(stopRow, kundenEndCol))
-            kundenRange.Merge
-        End If
-        
-        ' Merge the customer address cells horizontally for row 2 (B-D)
-        If kundenEndCol > colKunde Then
-            Set kundenRange = tempWs.Range(tempWs.Cells(stopRow + 1, colKunde), tempWs.Cells(stopRow + 1, kundenEndCol))
-            kundenRange.Merge
-        End If
-        
-        ' Merge the measurement cells vertically
-        tempWs.Range(tempWs.Cells(stopRow, colVolumen), tempWs.Cells(stopRow + 1, colVolumen)).Merge
-        tempWs.Range(tempWs.Cells(stopRow, colGewicht), tempWs.Cells(stopRow + 1, colGewicht)).Merge
-        tempWs.Range(tempWs.Cells(stopRow, colMontZeit), tempWs.Cells(stopRow + 1, colMontZeit)).Merge
-        If colStopZeit > 0 Then
-            tempWs.Range(tempWs.Cells(stopRow, colStopZeit), tempWs.Cells(stopRow + 1, colStopZeit)).Merge
-        End If
-        
-        ' Remove inner borders between customer name and address to make it look like one cell
-        ' First set all borders for the entire range
-        With tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, IIf(colStopZeit > 0, colStopZeit, colMontZeit)))
-            .Borders.LineStyle = xlContinuous
-            .Borders.weight = xlThin
-        End With
-        
-        ' Then remove the horizontal border between customer name and address
-        If kundenEndCol > colKunde Then
-            With tempWs.Range(tempWs.Cells(stopRow, colKunde), tempWs.Cells(stopRow, kundenEndCol)).Borders(xlEdgeBottom)
-                .LineStyle = xlNone
+        For j = startStop To endStop
+            Dim stopIndex As Long
+            stopIndex = j
+            currentRow = tourStops(stopIndex)
+            
+            ' Extract stop data
+            Dim stopNum As Long, recipientName As String, fullAddress As String
+            Dim weight As Double, volume As Double, stopZeitRange As String
+            
+            ' Stop number
+            stopNum = 0
+            If IsNumeric(ws.Cells(currentRow, 3).Value) Then
+                stopNum = ws.Cells(currentRow, 3).Value
+            Else
+                stopNum = stopIndex ' Use index as fallback
+            End If
+            
+            ' Customer name
+            recipientName = ""
+            If Not IsEmpty(ws.Cells(currentRow, 36).Value) Then
+                recipientName = CStr(ws.Cells(currentRow, 36).Value)
+            End If
+            
+            ' Address
+            Dim recipientAddress As String, recipientCity As String, recipientPostcode As String
+            recipientAddress = ""
+            recipientCity = ""
+            recipientPostcode = ""
+            
+            If Not IsEmpty(ws.Cells(currentRow, 37).Value) Then
+                recipientAddress = CStr(ws.Cells(currentRow, 37).Value)
+            End If
+            
+            If Not IsEmpty(ws.Cells(currentRow, 38).Value) Then
+                recipientCity = CStr(ws.Cells(currentRow, 38).Value)
+            End If
+            
+            If Not IsEmpty(ws.Cells(currentRow, 39).Value) Then
+                recipientPostcode = CStr(ws.Cells(currentRow, 39).Value)
+            End If
+            
+            fullAddress = recipientAddress
+            If Len(recipientPostcode) > 0 Or Len(recipientCity) > 0 Then
+                If Len(fullAddress) > 0 Then
+                    fullAddress = fullAddress & ", "
+                End If
+                fullAddress = fullAddress & recipientPostcode & " " & recipientCity
+            End If
+            
+            ' Measurements
+            weight = 0
+            If IsNumeric(ws.Cells(currentRow, 4).Value) Then
+                weight = CDbl(ws.Cells(currentRow, 4).Value)
+            End If
+            
+            volume = 0
+            If IsNumeric(ws.Cells(currentRow, 5).Value) Then
+                volume = CDbl(ws.Cells(currentRow, 5).Value)
+            End If
+            
+            montagezeit = 0
+            If Not IsEmpty(ws.Cells(currentRow, 54).Value) And IsNumeric(ws.Cells(currentRow, 54).Value) Then
+                montagezeit = CDbl(ws.Cells(currentRow, 54).Value)
+            End If
+            
+            ' Time window
+            stopZeitRange = ""
+            If Not IsEmpty(ws.Cells(currentRow, 18).Value) Then
+                If IsDate(ws.Cells(currentRow, 18).Value) Then
+                    Dim startTimeValue As Date, endTimeValue As Date
+                    On Error Resume Next
+                    startTimeValue = CDate(Format(ws.Cells(currentRow, 18).Value, "hh:mm"))
+                    
+                    If Err.Number = 0 Then
+                        ' Round to nearest hour
+                        Dim startHour As Integer
+                        startHour = Hour(startTimeValue)
+                        startTimeValue = DateSerial(Year(Date), Month(Date), Day(Date)) + TimeSerial(startHour, 0, 0)
+                        
+                        ' Add 3 hours
+                        endTimeValue = DateAdd("h", 3, startTimeValue)
+                        
+                        ' Format
+                        stopZeitRange = Format(startTimeValue, "hh:mm") & " - " & Format(endTimeValue, "hh:mm")
+                    End If
+                    Err.Clear
+                End If
+            End If
+            On Error GoTo ErrorHandler
+            
+            ' Insert rows for this stop if not the first one
+            If j > startStop Then
+                On Error Resume Next
+                tempWs.Rows(stopRow & ":" & (stopRow + 1)).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+                
+                If Err.Number <> 0 Then
+                    ' Try simpler insert
+                    Err.Clear
+                    tempWs.Rows(stopRow & ":" & (stopRow + 1)).Insert Shift:=xlDown
+                End If
+                Err.Clear
+                On Error GoTo ErrorHandler
+            End If
+            
+            ' Fill in cell values for first row
+            tempWs.Cells(stopRow, colStop).Value = "Stop " & stopNum
+            tempWs.Cells(stopRow, colKunde).Value = recipientName
+            
+            ' Format values with validation
+            If volume > 0 Then
+                tempWs.Cells(stopRow, colVolumen).Value = Format(volume, "#,##0.00") & " m³"
+            Else
+                tempWs.Cells(stopRow, colVolumen).Value = "0,00 m³"
+            End If
+            
+            If weight > 0 Then
+                tempWs.Cells(stopRow, colGewicht).Value = Format(weight, "#,##0.00") & " kg"
+            Else
+                tempWs.Cells(stopRow, colGewicht).Value = "0,00 kg"
+            End If
+            
+            If montagezeit > 0 Then
+                tempWs.Cells(stopRow, colMontZeit).Value = Format(montagezeit, "#,##0.00") & " h"
+            Else
+                tempWs.Cells(stopRow, colMontZeit).Value = "0,00 h"
+            End If
+            
+            If colStopZeit > 0 Then
+                tempWs.Cells(stopRow, colStopZeit).Value = stopZeitRange
+            End If
+            
+            ' Fill in second row
+            tempWs.Cells(stopRow + 1, colStop).Value = ""
+            tempWs.Cells(stopRow + 1, colKunde).Value = fullAddress
+            tempWs.Cells(stopRow + 1, colVolumen).Value = ""
+            tempWs.Cells(stopRow + 1, colGewicht).Value = ""
+            tempWs.Cells(stopRow + 1, colMontZeit).Value = ""
+            If colStopZeit > 0 Then
+                tempWs.Cells(stopRow + 1, colStopZeit).Value = ""
+            End If
+            
+            ' Try merging cells with independent error handling for each merge
+            ' This approach with separate On Error Resume Next blocks is key to avoiding "Typen unverträglich" errors
+            
+            ' 1. Merge stop column
+            On Error Resume Next
+            tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, colStop)).Merge
+            Err.Clear
+            
+            ' 2. Merge customer name column
+            On Error Resume Next
+            If kundenEndCol > colKunde Then
+                tempWs.Range(tempWs.Cells(stopRow, colKunde), tempWs.Cells(stopRow, kundenEndCol)).Merge
+            End If
+            Err.Clear
+            
+            ' 3. Merge customer address column
+            On Error Resume Next
+            If kundenEndCol > colKunde Then
+                tempWs.Range(tempWs.Cells(stopRow + 1, colKunde), tempWs.Cells(stopRow + 1, kundenEndCol)).Merge
+            End If
+            Err.Clear
+            
+            ' 4. Merge measurement columns vertically
+            On Error Resume Next
+            tempWs.Range(tempWs.Cells(stopRow, colVolumen), tempWs.Cells(stopRow + 1, colVolumen)).Merge
+            Err.Clear
+            
+            On Error Resume Next
+            tempWs.Range(tempWs.Cells(stopRow, colGewicht), tempWs.Cells(stopRow + 1, colGewicht)).Merge
+            Err.Clear
+            
+            On Error Resume Next
+            tempWs.Range(tempWs.Cells(stopRow, colMontZeit), tempWs.Cells(stopRow + 1, colMontZeit)).Merge
+            Err.Clear
+            
+            On Error Resume Next
+            If colStopZeit > 0 Then
+                tempWs.Range(tempWs.Cells(stopRow, colStopZeit), tempWs.Cells(stopRow + 1, colStopZeit)).Merge
+            End If
+            Err.Clear
+            
+            ' Apply borders
+            On Error Resume Next
+            With tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, IIf(colStopZeit > 0, colStopZeit, colMontZeit)))
+                .Borders.LineStyle = xlContinuous
+                .Borders.weight = xlThin
+            End With
+            Err.Clear
+            
+            ' Remove inner borders
+            On Error Resume Next
+            If kundenEndCol > colKunde Then
+                tempWs.Range(tempWs.Cells(stopRow, colKunde), tempWs.Cells(stopRow, kundenEndCol)).Borders(xlEdgeBottom).LineStyle = xlNone
+                tempWs.Range(tempWs.Cells(stopRow + 1, colKunde), tempWs.Cells(stopRow + 1, kundenEndCol)).Borders(xlEdgeTop).LineStyle = xlNone
+            End If
+            Err.Clear
+            
+            ' Set alignment - stop column
+            On Error Resume Next
+            With tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, colStop))
+                .HorizontalAlignment = xlCenter
+                .VerticalAlignment = xlCenter
+            End With
+            Err.Clear
+            
+            ' Set alignment - measurements
+            On Error Resume Next
+            With tempWs.Range(tempWs.Cells(stopRow, colVolumen), tempWs.Cells(stopRow + 1, IIf(colStopZeit > 0, colStopZeit, colMontZeit)))
+                .HorizontalAlignment = xlCenter
+                .VerticalAlignment = xlCenter
+            End With
+            Err.Clear
+            
+            ' Set alignment - customer name and address
+            On Error Resume Next
+            With tempWs.Range(tempWs.Cells(stopRow, colKunde), tempWs.Cells(stopRow, IIf(kundenEndCol > colKunde, kundenEndCol, colKunde)))
+                .HorizontalAlignment = xlLeft
+                .VerticalAlignment = xlTop
             End With
             
-            With tempWs.Range(tempWs.Cells(stopRow + 1, colKunde), tempWs.Cells(stopRow + 1, kundenEndCol)).Borders(xlEdgeTop)
-                .LineStyle = xlNone
+            With tempWs.Range(tempWs.Cells(stopRow + 1, colKunde), tempWs.Cells(stopRow + 1, IIf(kundenEndCol > colKunde, kundenEndCol, colKunde)))
+                .HorizontalAlignment = xlLeft
+                .VerticalAlignment = xlTop
             End With
+            Err.Clear
+            
+            On Error GoTo ErrorHandler
+            
+            ' Move to next row
+            stopRow = stopRow + 2
+        Next j
+        
+        ' Add final row - totals on the last page, "continued" on others
+        If i = pageCount Then
+            ' Add totals row on last page
+            On Error Resume Next
+            tempWs.Cells(stopRow, colStop).Value = "Total"
+            tempWs.Cells(stopRow, colKunde).Value = ""
+            tempWs.Cells(stopRow + 1, colKunde).Value = ""
+            tempWs.Cells(stopRow, colVolumen).Value = Format(totalVolume, "#,##0.00") & " m³"
+            tempWs.Cells(stopRow, colGewicht).Value = Format(totalWeight, "#,##0.00") & " kg"
+            tempWs.Cells(stopRow, colMontZeit).Value = Format(totalMontagezeit, "#,##0.00") & " h"
+            Err.Clear
+            
+            ' Merge cells for total row
+            On Error Resume Next
+            tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, colStop)).Merge
+            tempWs.Range(tempWs.Cells(stopRow, colKunde), tempWs.Cells(stopRow + 1, colKunde)).Merge
+            tempWs.Range(tempWs.Cells(stopRow, colVolumen), tempWs.Cells(stopRow + 1, colVolumen)).Merge
+            tempWs.Range(tempWs.Cells(stopRow, colGewicht), tempWs.Cells(stopRow + 1, colGewicht)).Merge
+            tempWs.Range(tempWs.Cells(stopRow, colMontZeit), tempWs.Cells(stopRow + 1, colMontZeit)).Merge
+            
+            If colStopZeit > 0 Then
+                tempWs.Range(tempWs.Cells(stopRow, colStopZeit), tempWs.Cells(stopRow + 1, colStopZeit)).Merge
+            End If
+            Err.Clear
+            
+            ' Format total row
+            On Error Resume Next
+            With tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, IIf(colStopZeit > 0, colStopZeit, colMontZeit)))
+                .Font.Bold = True
+                .HorizontalAlignment = xlCenter
+                .VerticalAlignment = xlCenter
+                .Borders.LineStyle = xlContinuous
+                .Borders.weight = xlThick
+                .Interior.ColorIndex = xlNone
+            End With
+            Err.Clear
+        Else
+            ' Add "continued" note on non-final pages
+            On Error Resume Next
+            tempWs.Cells(stopRow, colStop).Value = "Continued on next page..."
+            tempWs.Cells(stopRow, colKunde).Value = ""
+            
+            tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow, IIf(colStopZeit > 0, colStopZeit, colMontZeit))).Merge
+            
+            With tempWs.Cells(stopRow, colStop)
+                .HorizontalAlignment = xlCenter
+                .VerticalAlignment = xlCenter
+                .Font.Italic = True
+                .Font.Bold = True
+            End With
+            Err.Clear
         End If
         
-        ' Center align cells except customer info
-        With tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, colStop))
-            ' Set horizontal alignment for stop column
-            .HorizontalAlignment = xlCenter
-            .VerticalAlignment = xlCenter
-        End With
+        On Error GoTo ErrorHandler
         
-        With tempWs.Range(tempWs.Cells(stopRow, colVolumen), tempWs.Cells(stopRow + 1, IIf(colStopZeit > 0, colStopZeit, colMontZeit)))
-            ' Set horizontal alignment for measurement columns
-            .HorizontalAlignment = xlCenter
-            .VerticalAlignment = xlCenter
+        ' Set print settings
+        With tempWs.PageSetup
+            .Orientation = xlPortrait
+            .PaperSize = xlPaperA4
+            .Zoom = False
+            .FitToPagesWide = 1
+            .FitToPagesTall = 1
+            .CenterHorizontally = True
+            .CenterVertically = False
         End With
-        
-        ' Left align customer info
-        With tempWs.Range(tempWs.Cells(stopRow, colKunde), tempWs.Cells(stopRow, IIf(kundenEndCol > colKunde, kundenEndCol, colKunde)))
-            .HorizontalAlignment = xlLeft
-            .VerticalAlignment = xlTop
-        End With
-        
-        With tempWs.Range(tempWs.Cells(stopRow + 1, colKunde), tempWs.Cells(stopRow + 1, IIf(kundenEndCol > colKunde, kundenEndCol, colKunde)))
-            .HorizontalAlignment = xlLeft
-            .VerticalAlignment = xlTop
-        End With
-        
-        ' Ensure font size matches throughout
-        With tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, IIf(colStopZeit > 0, colStopZeit, colMontZeit)))
-            .Font.Size = tempWs.Cells(dataStartRow, colStop).Font.Size
-        End With
-        
-        ' Move to the next stop position (2 rows later)
-        stopRow = stopRow + 2
-    Next j
+    Next i
     
-    ' Add total row (2 rows tall like the stop rows)
-    tempWs.Cells(stopRow, colStop).Value = "Total"
-    tempWs.Cells(stopRow, colKunde).Value = ""
-    tempWs.Cells(stopRow + 1, colKunde).Value = ""
-    tempWs.Cells(stopRow, colVolumen).Value = Format(totalVolume, "#,##0.00") & " m³"
-    tempWs.Cells(stopRow, colGewicht).Value = Format(totalWeight, "#,##0.00") & " kg"
-    tempWs.Cells(stopRow, colMontZeit).Value = Format(totalMontagezeit, "#,##0.00") & " h"
-    
-    ' Merge cells vertically for the Total row
-    tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, colStop)).Merge
-    tempWs.Range(tempWs.Cells(stopRow, colKunde), tempWs.Cells(stopRow + 1, colKunde)).Merge
-    tempWs.Range(tempWs.Cells(stopRow, colVolumen), tempWs.Cells(stopRow + 1, colVolumen)).Merge
-    tempWs.Range(tempWs.Cells(stopRow, colGewicht), tempWs.Cells(stopRow + 1, colGewicht)).Merge
-    tempWs.Range(tempWs.Cells(stopRow, colMontZeit), tempWs.Cells(stopRow + 1, colMontZeit)).Merge
-    If colStopZeit > 0 Then
-        tempWs.Range(tempWs.Cells(stopRow, colStopZeit), tempWs.Cells(stopRow + 1, colStopZeit)).Merge
+    ' Delete the first blank sheet
+    Application.DisplayAlerts = False
+    If tempWb.Sheets.count > pageCount Then
+        tempWb.Sheets(1).Delete
     End If
-    
-    ' Format the total row - bold, center aligned, and thicker borders
-    With tempWs.Range(tempWs.Cells(stopRow, colStop), tempWs.Cells(stopRow + 1, IIf(colStopZeit > 0, colStopZeit, colMontZeit)))
-        ' Bold text
-        .Font.Bold = True
-        
-        ' Center alignment
-        .HorizontalAlignment = xlCenter
-        .VerticalAlignment = xlCenter
-        
-        ' Apply thick borders
-        .Borders.LineStyle = xlContinuous
-        .Borders.weight = xlThick
-        
-        ' Ensure background color is consistent
-        .Interior.ColorIndex = xlNone
-    End With
-    
-    ' Update the stopRow for any potential next operations
-    stopRow = stopRow + 2
+    Application.DisplayAlerts = True
     
     ' Save as PDF
+    Dim pdfFileName As String
     pdfFileName = pdfPath & "Tour_" & tourNumber & "_Summary.pdf"
     
-    ' Set the print settings
-    With tempWs.PageSetup
-        .Orientation = xlPortrait  ' Changed from xlLandscape to xlPortrait
-        .PaperSize = xlPaperA4     ' Explicitly set to A4 paper size
-        .Zoom = False
-        .FitToPagesWide = 1
-        .FitToPagesTall = 99 ' Multiple pages if needed for long tours
-        .CenterHorizontally = True
-        .CenterVertically = False
-    End With
-    
     ' Export as PDF
-    tempWs.ExportAsFixedFormat Type:=xlTypePDF, Filename:=pdfFileName, Quality:=xlQualityStandard, _
+    tempWb.ExportAsFixedFormat Type:=xlTypePDF, Filename:=pdfFileName, Quality:=xlQualityStandard, _
         IncludeDocProperties:=True, IgnorePrintAreas:=False, OpenAfterPublish:=False
     
-    ' Close the workbook containing the temporary worksheet
-    On Error Resume Next
-    Dim tempWorkbook As Workbook
-    Set tempWorkbook = tempWs.Parent
-    tempWorkbook.Close SaveChanges:=False
-    On Error GoTo 0
+    ' Close the workbook
+    tempWb.Close SaveChanges:=False
     
     Exit Sub
     
 ErrorHandler:
     MsgBox "Error creating Summary PDF for tour " & tourNumber & ": " & Err.description, vbCritical
     On Error Resume Next
-    If Not tempWs Is Nothing Then
-        Dim errorWorkbook As Workbook
-        Set errorWorkbook = tempWs.Parent
-        errorWorkbook.Close SaveChanges:=False
+    If Not tempWb Is Nothing Then
+        If tempWb.Name <> "" Then ' Check if workbook is still open
+            tempWb.Close SaveChanges:=False
+        End If
     End If
 End Sub
 
