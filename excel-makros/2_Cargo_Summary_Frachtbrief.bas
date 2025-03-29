@@ -1223,6 +1223,37 @@ Sub CreateCombinedFreightPDFFromTemplate(ws As Worksheet, tourNumber As String, 
                     tempWs.Cells(row, colItemNumbers).Value = itemNumbers   ' Goes in column C (merged C-D)
                     tempWs.Cells(row, colItemName).Value = itemName         ' Goes in column E (merged E-F)
                     
+                    ' *** NEUER CODE: Füge Icon basierend auf Artikelcode/Name hinzu ***
+                    ' Get the appropriate icon reference for this item
+                    Dim iconRef As String
+                    iconRef = GetItemIcon(itemName)
+
+                    ' Copy the icon from the Emoji worksheet
+                    Dim emojiWs As Worksheet
+                    On Error Resume Next
+                    Set emojiWs = ws.Parent.Worksheets("Emoji")
+                    If Not emojiWs Is Nothing Then
+                        ' Copy the icon cell with its formatting
+                        emojiWs.Range(iconRef).Copy
+                        tempWs.Cells(row, colIcon).PasteSpecial xlPasteAll
+                        Application.CutCopyMode = False
+                    End If
+                    On Error GoTo ErrorHandler
+
+                    ' Format the icon cell with smaller size and borders
+                    With tempWs.Cells(row, colIcon)
+                        .HorizontalAlignment = xlCenter
+                        .VerticalAlignment = xlCenter
+             
+                        ' Füge Rahmen hinzu
+                        .Borders(xlEdgeLeft).LineStyle = xlContinuous
+                        .Borders(xlEdgeRight).LineStyle = xlContinuous
+                        .Borders(xlEdgeTop).LineStyle = xlContinuous
+                        .Borders(xlEdgeBottom).LineStyle = xlContinuous
+                        ' Ändere die Schriftgröße für kleinere Icons
+                        .Font.Size = 10
+                    End With
+                    
                     ' Make sure to delete any existing merged cells before merging
                     On Error Resume Next
                     If tempWs.Cells(row, colItemNumbers).MergeCells Then
@@ -1273,6 +1304,31 @@ Sub CreateCombinedFreightPDFFromTemplate(ws As Worksheet, tourNumber As String, 
                 Dim firstRow As Long, lastRow As Long
                 firstRow = itemTableRow
                 lastRow = firstRow + itemCount - 1
+                ' Add a header icon for the first row if there are multiple items
+                Dim headerIconRef As String
+                headerIconRef = GetHeaderIcon()
+                
+                On Error Resume Next
+                If Not emojiWs Is Nothing Then
+                    ' Copy the header icon with its formatting
+                    emojiWs.Range(headerIconRef).Copy
+                    tempWs.Cells(firstRow - 1, colIcon).PasteSpecial xlPasteAll
+                    Application.CutCopyMode = False
+            
+                    With tempWs.Cells(firstRow - 1, colIcon)
+                        .HorizontalAlignment = xlCenter
+                        .VerticalAlignment = xlCenter
+                        ' Füge Rahmen hinzu
+                        .Borders(xlEdgeLeft).LineStyle = xlContinuous
+                        .Borders(xlEdgeRight).LineStyle = xlContinuous
+                        .Borders(xlEdgeTop).LineStyle = xlContinuous
+                        .Borders(xlEdgeBottom).LineStyle = xlContinuous
+                        ' Ändere die Schriftgröße für kleinere Icons, aber etwas größer als normale Icons
+                        .Font.Size = 11
+                        .Font.Bold = True
+                    End With
+                End If
+                
                 
                 ' Merge the Stückzahl cells vertically
                 tempWs.Range(tempWs.Cells(firstRow, colQuantity), tempWs.Cells(lastRow, colQuantity)).Merge
@@ -1716,4 +1772,146 @@ Function ParseItems(warenText As String) As Variant
     Next i
     
     ParseItems = result
+End Function
+
+Function GetItemIcon(itemCode As String) As String
+    ' Diese Funktion gibt eine Zellreferenz zurück basierend auf dem Artikelcode/Namen
+    ' Input: itemCode - Der zu analysierende Artikelcode oder -name
+    ' Output: Eine Zellreferenz zum passenden Icon im Emoji-Arbeitsblatt
+    
+    ' Extrahiere das Präfix vom Artikelcode für die Kategorisierung
+    Dim prefix As String
+    
+    ' Prüfe, ob der itemCode ein Leerzeichen enthält (Item ID + Beschreibung)
+    If InStr(itemCode, " ") > 0 Then
+        ' Extrahiere alles vor dem ersten Leerzeichen
+        prefix = Trim(Split(itemCode, " ")(0))
+    Else
+        prefix = itemCode
+    End If
+    
+    ' Extrahiere nur den alphabetischen Teil am Anfang
+    Dim i As Integer
+    Dim alphaPrefix As String
+    alphaPrefix = ""
+    
+    For i = 1 To Len(prefix)
+        Dim char As String
+        char = Mid(prefix, i, 1)
+        
+        ' Prüfe, ob das Zeichen ein Buchstabe ist
+        If (char Like "[A-Za-z]") Then
+            alphaPrefix = alphaPrefix & char
+        Else
+            ' Beende die Schleife, wenn wir ein nicht-alphabetisches Zeichen erreichen
+            Exit For
+        End If
+    Next i
+    
+    ' Konvertiere zu Großbuchstaben für Konsistenz
+    alphaPrefix = UCase(alphaPrefix)
+    
+    ' Standard-Icon, falls kein passendes gefunden wird
+    GetItemIcon = "F2" ' Computer/PC als Standard (Row 17, Column A)
+    
+    ' Weise Icon basierend auf Kategorie-Präfix zu
+    ' Die Zuweisungen entsprechen den Zellreferenzen im Emoji-Arbeitsblatt
+    Select Case alphaPrefix
+        ' Schreibtische und Tische
+        Case "MXTI", "FLUX", "MQ22TI", "ATR", "BTRE"
+            GetItemIcon = "D15" ' Ordner/Dateisymbol für Schreibtische
+            
+        ' Schränke, Regale und Rollcontainer
+        Case "MOSS", "MOTS", "STS", "MORE", "RE", "CONT", "LHRC", "MQ22SS", "MQ22SR", "XLR"
+            GetItemIcon = "A44" ' Drucker/Kopierer Symbol für Container
+            
+        ' Besprechungstische und runde Tische
+        Case "MXBT", "MXKT", "DREYFUSS", "MQ22BT", "MQ22KT", "BTRQ"
+            GetItemIcon = "E9" ' Tisch mit Stühlen Symbol
+            
+        ' Stühle und Sitzmöbel
+        Case "PC", "DS4Q", "VI"
+            GetItemIcon = "B20" ' Stuhl Symbol
+            
+        ' Trennwände und Panels
+        Case "MOOS", "NOOVA", "NODPPRO", "MXOP", "MXPW", "TP2PB", "TP1PB"
+            GetItemIcon = "G25" ' Pinnwand/Panel Symbol
+            
+        ' Belüftung und technische Komponenten
+        Case "ZBL", "ZBKAS", "ZBSCH", "CPU"
+            GetItemIcon = "E1" ' Technisches Symbol
+            
+        ' Platten und Oberflächen
+        Case "SUPL", "AERP"
+            GetItemIcon = "C86" ' Maßband/Werkzeug Symbol
+            
+        ' Küchenteile
+        Case "KOOK"
+            GetItemIcon = "C59" ' Glühbirne/Küchen Symbol
+            
+        ' Montage und Installation
+        Case "MONTAGEPAU", "MONTAGEREG", "MONTM"
+            GetItemIcon = "D4" ' Schraubenschlüssel/Werkzeug Symbol
+            
+        ' Beleuchtung und Elektrik
+        Case "SCHULELK", "LAMP"
+            GetItemIcon = "B21" ' Glühbirne Symbol
+            
+        ' Zubehör und Kleinteile
+        Case "SUKL", "SUSO", "FLUXZ"
+            GetItemIcon = "D7" ' Kleinteile Symbol
+            
+        ' Garderobenständer
+        Case "MOGW", "MOGP", "WG", "GASC"
+            GetItemIcon = "B22" ' Möbel/Garderobe Symbol
+            
+        ' Empfangstheken
+        Case "MXEP"
+            GetItemIcon = "A9" ' Stift Symbol für Empfang
+            
+        ' Höhenverstellbare Komponenten
+        Case "FLUXE", "E2"
+            GetItemIcon = "F34" ' Zahnrad Symbol für Mechanik
+            
+        ' Lieferung und Logistik
+        Case "LIEFM"
+            GetItemIcon = "C28" ' Lieferwagen/Auto Symbol
+            
+        ' Dekorative Elemente
+        Case "LE"
+            GetItemIcon = "F19" ' Dekoratives Symbol
+            
+        ' IT-Komponenten
+        Case "CPU", "SERVER", "TECH"
+            GetItemIcon = "A38" ' Computer/IT Symbol
+            
+        ' Standard für unbekannte Kategorien
+        Case Else
+            ' Versuche, anhand von Schlüsselwörtern im vollständigen itemCode zu bestimmen
+            If InStr(UCase(itemCode), "TISCH") > 0 Then
+                GetItemIcon = "E9" ' Tisch Symbol
+            ElseIf InStr(UCase(itemCode), "STUHL") > 0 Then
+                GetItemIcon = "B20" ' Stuhl Symbol
+            ElseIf InStr(UCase(itemCode), "MONTAGE") > 0 Then
+                GetItemIcon = "D4" ' Schraubenschlüssel Symbol
+            ElseIf InStr(UCase(itemCode), "SCHRANK") > 0 Then
+                GetItemIcon = "A44" ' Schrank/Container Symbol
+            ElseIf InStr(UCase(itemCode), "PANEL") > 0 Or InStr(UCase(itemCode), "WAND") > 0 Then
+                GetItemIcon = "G25" ' Panel Symbol
+            ElseIf InStr(UCase(itemCode), "LEUCHTE") > 0 Or InStr(UCase(itemCode), "LAMPE") > 0 Then
+                GetItemIcon = "B21" ' Glühbirne Symbol
+            ElseIf InStr(UCase(itemCode), "CONTAINER") > 0 Or InStr(UCase(itemCode), "CONT") > 0 Then
+                GetItemIcon = "A44" ' Schrank/Container Symbol
+            ElseIf InStr(UCase(itemCode), "KABEL") > 0 Or InStr(UCase(itemCode), "ELEKTR") > 0 Then
+                GetItemIcon = "E1" ' Technisches/Elektro Symbol
+            Else
+                GetItemIcon = "F2" ' Computer/Allgemeines Symbol
+            End If
+    End Select
+End Function
+
+' Funktion für das Überschriften-Icon bei mehreren Artikeln
+Function GetHeaderIcon() As String
+    ' Returns the icon reference to use as a header for multiple items
+    GetHeaderIcon = "A7" ' Stift-Symbol für Überschrift
 End Function
