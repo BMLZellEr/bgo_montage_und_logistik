@@ -87,6 +87,10 @@
 - **Aufpassen = Keine Softwarekontrolle** für **Bereitstell_Datum** ist **später** als **Entlade_Start_Datum**
 - **Bermerkungs_Felder** sind **1:1** wie in **Profi-Tour**
 
+## Übernahme Aufträge die Hänhgengeblieben sind
+- CS-Job => Ladung Import Aufträge => Orange Felder sind neu
+
+
 ## Export der DB in Excel
 - Rechtsklick auf Spalte => Exportiere Tabelle
 
