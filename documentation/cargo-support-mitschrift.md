@@ -49,6 +49,12 @@
 
 ## 💎 Infos Cargo-Support
 
+## Personal
+- As I use it more and more its actually sad that the Software got cancelet it could have been great Software.
+- It needs big fixes and a lot of performace imporvements but the featureset is actually fucking big.
+- I wonder can closed source software actually be a good thing ?
+- Is there a Open-Source Tourenplanung-Software ? If not maybe a good buisness idea
+
 ## DB-Ansicht besteht aus 2 Teilen
 - Oben => Datenbank => Unverplante Datensätze ==> Pretty much 1:1 Datenbank-Ansicht in Profitour
 - Unten => Disponiert => Verplante Datensätze ==> Touren-Fenster in Profitour => in DB-Ansicht sichtbar!
