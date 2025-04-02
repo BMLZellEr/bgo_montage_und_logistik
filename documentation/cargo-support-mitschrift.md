@@ -66,19 +66,35 @@
 - Frachtbrief & Tourenplan & Transportauftrag & Auftragsbest => Alle von **DB-Ansicht** aus **druckbar** => **"F6"**
 - **Wichtig** = Arbeitsweise ist anders als in Profi-Tour => Zuerst Lager-WAB planen & Anschließend Tour teilen
 
-## Cargo Support Tickets Live-System
-### BUGS / POSSIBLE BUGS:**
-- Ende April is **Service-Vertrag** aus => Bis dahin muss alles gefixed sein.
-- **Verladereihenfolge** Live-System is weird => Could also be User-Error => Mit Klaus getestet => **Er denkt kein User-Error**
-- **Key-User Profi-Tour** Isabell 26.03.25 => Ab August
-- **Split-Menu** => Something with the System/Split/Übergabe/Liefer_Date is fucked => has no real impact on NOS 
-- **Montage/Verlade/Gesamtzeit-Zeit** bei Gespiltteten-Touren => Fucks date calculation for Container_Tours => **Enlade_Zeit =! Montage_Zeit**
-- **BEIM TEILEN (SPLITTEN) BLEINBT FIXTERMIN NUR IN DER SC TOUR** => MUSS IN BEIDEN SEIN! => Maybe connected to the Date fuckup
-#### Quality of Life:
-- **Mitarbeiter needs to be set 1 by 1 => Very annoying => Either Planungsdaten ändern oder Tour-Ebene**
-- **Same thing for Entlade_Start**
-- **Split-Menu** => Wieso keine WAB-Nummer Feld => Add "Freetext1" in Split Menu => Add it on both Tours so they are visably connected
-- Doppelklick Menü deaktivireren => mit einer Checkbox => ist total Nervig
+# Cargo Support Tickets - Live-System
+
+## 🐞 Bugs and Possible Bugs
+
+- **🐞 Auto. Verladereihenfolge**  
+  Live-System is behaving unexpectedly → Could be user error → Tested with Klaus → **He believes it's not user error**
+
+- **🐞 Split-Menu**  
+  Issues with System/Split/Übergabe/Liefer_Date functionality → **No significant impact on NOS**
+
+- **BIG🐞 After Spliting the Tour "Fixtermin="ContainsFixDate" only stays at the Überstellungs-Tour**  
+  SHOULD BE IN BOTH TOURS! → Possibly connected to the date calculation issue
+
+- **MAYBE?🐞 Montage/Verlade/Gesamt-Zeit at Tours that are Split**
+  Affects **Date&Time** Calculation for Container_Tours → **Entlade_Zeit ≠ Montage_Zeit**
+
+## 😀 Quality of Life Improvements / Non-Bugs
+
+- **😀 Mitarbeiter needs to be set on Auftragsebene** => **Calculation is slower than my Grandma**
+  Very annoying → Need either button: **"Planungsdaten ändern"** or change on **"Tour-Ebene"**
+
+- **😀 Same issue for "Entlade_Start" / "UnloadingStart"**  
+  Add at "Entlade_Start" input in button: **"Planungsdaten ändern"**
+
+- **😀 Split-Menu**  
+  No field for **Container-Nummer** → Add **"FreeText1"** in Split Menu → **Both tours will be visibly connected**
+
+- **😀 Doppelklick Menü deaktivieren**  
+  Add a checkbox option → Current behavior is very annoying → I Open this Menu by accident around 10x a Day
 
 ## Programmstart & Filter der Aufträge
 - Filter in der DB-Ansicht ist oben links => Keine "KW" => Montag bis Sonntag der gewünschten KW auswählen.
