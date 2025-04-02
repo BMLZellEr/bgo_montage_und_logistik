@@ -67,20 +67,18 @@
 - **Wichtig** = Arbeitsweise ist anders als in Profi-Tour => Zuerst Lager-WAB planen & Anschließend Tour teilen
 
 ## Cargo Support Tickets Live-System
+### BUGS / POSSIBLE BUGS:**
 - Ende April is **Service-Vertrag** aus => Bis dahin muss alles gefixed sein.
-- **Verladereihenfolge** Live-System geht nicht => Mit Klaus nicht besprochen.
-- Immer Nach-Checken ob es nicht passt !
-- Helmuth => Sachen sagen !
-- Übergang Profi/Cargo => "KW__" ==>> 1KW Notwendig.
+- **Verladereihenfolge** Live-System is weird => Could also be User-Error => Mit Klaus getestet => **Er denkt kein User-Error**
 - **Key-User Profi-Tour** Isabell 26.03.25 => Ab August
-- August => profi-tour = Umstellung.
-- Auto. Verladereihenfolge => Needs a fix => Also auto Verladeliste.pdf
-- Mitarbeiter needs to be set 1 by 1 => Very annoying => Either Planungsdaten ändern oder Tour-Ebene
-- Mitarbeiter/Montage-Zeit bei Geteilten-Touren (LAGER-Touren) fucks date calc. for WABS
-- Datensätze werden zurück auf ÜBergabe_DAtum geschoben
-- Doppelklick Menü deaktivireren => Checkbox => Nervig
-- BEIM TEILEN (SPLITTEN) BLEINBT FIXTERMIN NUR IN DER SC TOUR
-- Felder = **Freitext_1** missing in **Fenster_Multi_Split**
+- **Split-Menu** => Something with the System/Split/Übergabe/Liefer_Date is fucked => has no real impact on NOS 
+- **Montage/Verlade/Gesamtzeit-Zeit** bei Gespiltteten-Touren => Fucks date calculation for Container_Tours => **Enlade_Zeit =! Montage_Zeit**
+- **BEIM TEILEN (SPLITTEN) BLEINBT FIXTERMIN NUR IN DER SC TOUR** => MUSS IN BEIDEN SEIN! => Maybe connected to the Date fuckup
+#### Quality of Life:
+- **Mitarbeiter needs to be set 1 by 1 => Very annoying => Either Planungsdaten ändern oder Tour-Ebene**
+- **Same thing for Entlade_Start**
+- **Split-Menu** => Wieso keine WAB-Nummer Feld => Add "Freetext1" in Split Menu => Add it on both Tours so they are visably connected
+- Doppelklick Menü deaktivireren => mit einer Checkbox => ist total Nervig
 
 ## Programmstart & Filter der Aufträge
 - Filter in der DB-Ansicht ist oben links => Keine "KW" => Montag bis Sonntag der gewünschten KW auswählen.
