@@ -80,6 +80,7 @@
 - Datensätze werden zurück auf ÜBergabe_DAtum geschoben
 - Doppelklick Menü deaktivireren => Checkbox => Nervig
 - BEIM TEILEN (SPLITTEN) BLEINBT FIXTERMIN NUR IN DER SC TOUR
+- Felder = **Freitext_1** missing in **Fenster_Multi_Split**
 
 ## Programmstart & Filter der Aufträge
 - Filter in der DB-Ansicht ist oben links => Keine "KW" => Montag bis Sonntag der gewünschten KW auswählen.
@@ -231,7 +232,6 @@
 
 ## Weird Shit
 - ❌ Useless_Felder == **Startzeit_ab** & **Startzeit_bis** & **Freitext_2** & **Freitext_3** & **ab** & **von(B)** & **bis (B)** & **bis** & **von (E)** & **bis(E)**
-- Felder = **Freitext_1** missing in **Fenster_Multi_Split**
 - Felder
 - Es soll Felder geben die wenn man sie verstellt sind sie für alle verstellet ??? (UNSURE ASK BIG BOSS) 
 - Button: **Tour drehen** & **Tour optimieren** im Virtuelle_Touren Fenster funktionieren nicht. 
