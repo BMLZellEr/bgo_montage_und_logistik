@@ -1,6 +1,7 @@
 Sub ProcessToursAndCreatePDFs()
-    ' Tour Processing Macro - Template-based version with PDF generation
-    ' Version 4.0 - Now with Multi-Site Pdf handling
+    ' Version 4.1
+    ' Enhanced Tour Processing Macro - Template-based version with PDF generation
+    ' Now with improved folder structure: SC_[Location]/KW[Week_Number]/[MM]_[DD]_[TourNumber]_[TourName]/
     
     On Error GoTo ErrorHandler
     
@@ -12,8 +13,8 @@ Sub ProcessToursAndCreatePDFs()
     Dim isServiceCenter As Boolean
     Dim pdfFolderPath As String
     
-    ' Ask user for PDF output folder
-    pdfFolderPath = BrowseForFolder("Select folder to save PDF files")
+    ' Ask user for PDF base output folder
+    pdfFolderPath = BrowseForFolder("Select base folder for SC folders")
     If pdfFolderPath = "" Then
         MsgBox "Operation cancelled.", vbInformation
         Exit Sub
@@ -80,13 +81,14 @@ Sub ProcessToursAndCreatePDFs()
                 ' Get tour data if it doesn't exist yet
                 If Not tourSummary.Exists(tourNumber) Then
                     ' Create a new tour entry
-                    Dim newTourData(5) As Variant
+                    Dim newTourData(6) As Variant  ' Added one more field for Lieferwoche
                     newTourData(0) = "" ' Tour name (filled below)
                     newTourData(1) = "" ' Tour date (filled below)
                     newTourData(2) = "" ' Tour type (filled below)
                     newTourData(3) = 0 ' Total weight - we'll calculate this
                     newTourData(4) = 0 ' Total volume - we'll calculate this
                     newTourData(5) = "" ' AB Numbers (filled below)
+                    newTourData(6) = "" ' Lieferwoche (calendar week)
                     
                     tourSummary.Add tourNumber, newTourData
                 End If
@@ -110,7 +112,7 @@ Sub ProcessToursAndCreatePDFs()
                 
                 ' Add AB Number if not already included
                 Dim abNumber As String
-                abNumber = ws.Cells(i, 12).Value ' Column L
+                abNumber = ws.Cells(i, 10).Value ' Column L
                 
                 If Len(abNumber) > 0 And InStr(tourDataArray(5), abNumber) = 0 Then
                     If Len(tourDataArray(5)) > 0 Then
@@ -127,6 +129,13 @@ Sub ProcessToursAndCreatePDFs()
                 
                 If IsNumeric(ws.Cells(i, 5).Value) Then
                     tourDataArray(4) = tourDataArray(4) + CDbl(ws.Cells(i, 5).Value)
+                End If
+                
+                ' Get Lieferwoche (column G) - only update if not already set
+                If tourDataArray(6) = "" Then
+                    If Not IsEmpty(ws.Cells(i, 7).Value) Then
+                        tourDataArray(6) = CStr(ws.Cells(i, 7).Value)
+                    End If
                 End If
                 
                 ' Update the tour data in the dictionary
@@ -163,18 +172,18 @@ Sub ProcessToursAndCreatePDFs()
                     Dim stopNum As Long
                     stopNum = ws.Cells(i, 3).Value
             
-                    ' Get "Packstück Artikeltypen" (column AU)
+                    ' Get "Packstück Artikeltypen" (column AK)
                     Dim artikelTypen As String
-                    If Not IsEmpty(ws.Cells(i, 47).Value) Then ' Column AU
-                        artikelTypen = CStr(ws.Cells(i, 47).Value)
+                    If Not IsEmpty(ws.Cells(i, 37).Value) Then ' Column AK
+                        artikelTypen = CStr(ws.Cells(i, 37).Value)
                     Else
                         artikelTypen = ""
                     End If
             
-                    ' Get "Warenbeschreibung" (column AV)
+                    ' Get "Warenbeschreibung" (column AL)
                     Dim warenText As String
-                    If Not IsEmpty(ws.Cells(i, 48).Value) Then ' Column AV
-                        warenText = CStr(ws.Cells(i, 48).Value)
+                    If Not IsEmpty(ws.Cells(i, 38).Value) Then ' Column AL
+                        warenText = CStr(ws.Cells(i, 38).Value)
                 
                         ' Process and format the items with both inputs
                         Dim formattedItems As String
@@ -216,12 +225,54 @@ Sub ProcessToursAndCreatePDFs()
         currentTourData = tourSummary(tourKey)
         
         ' Convert both tourKey and tourName to string to avoid ByRef error
-        Dim tourKeyStr As String, tourNameStr As String
+        Dim tourKeyStr As String, tourNameStr As String, tourDateStr As String, lieferWocheStr As String
         tourKeyStr = CStr(tourKey)
         tourNameStr = CStr(currentTourData(0))
+        tourDateStr = CStr(currentTourData(1))
+        lieferWocheStr = CStr(currentTourData(6))
         
-        Application.StatusBar = "Creating PDFs for Tour " & tourKeyStr & "..."
-        CreateTourPDFFromTemplate ws, tourKeyStr, tourNameStr, pdfFolderPath
+        ' Extract SC location from tour name
+        Dim scLocation As String
+        scLocation = ExtractSCLocationFromTour(tourNameStr)
+        
+        ' Get KW number from Lieferwoche
+        Dim kwNumber As String
+        kwNumber = GetKWFromLieferwoche(lieferWocheStr)
+        
+        ' Create SC folder path
+        Dim scFolderPath As String
+        scFolderPath = pdfFolderPath & "SC_" & scLocation & "\"
+        
+        ' Create SC folder if it doesn't exist
+        If Not CreateFolderIfNotExist(scFolderPath) Then
+            ' If creation fails, use the main folder
+            scFolderPath = pdfFolderPath
+        End If
+        
+        ' Create KW folder path
+        Dim kwFolderPath As String
+        kwFolderPath = scFolderPath & "KW" & kwNumber & "\"
+        
+        ' Create KW folder if it doesn't exist
+        If Not CreateFolderIfNotExist(kwFolderPath) Then
+            ' If creation fails, use the SC folder
+            kwFolderPath = scFolderPath
+        End If
+        
+        ' Create a subfolder for this tour
+        Dim tourFolderName As String, tourFolderPath As String
+        tourFolderName = CreateTourFolderName(tourDateStr, tourNameStr, tourKeyStr, lieferWocheStr)
+        tourFolderPath = kwFolderPath & tourFolderName & "\"
+        
+        ' Create the tour folder
+        If CreateFolderIfNotExist(tourFolderPath) Then
+            Application.StatusBar = "Creating PDFs for Tour " & tourKeyStr & " in folder " & tourFolderName & "..."
+            CreateTourPDFFromTemplate ws, tourKeyStr, tourNameStr, tourFolderPath
+        Else
+            ' If folder creation failed, use the KW folder
+            Application.StatusBar = "Creating PDFs for Tour " & tourKeyStr & "..."
+            CreateTourPDFFromTemplate ws, tourKeyStr, tourNameStr, kwFolderPath
+        End If
     Next tourKey
     
 CleanExit:
@@ -265,14 +316,283 @@ Sub CreateTourPDFFromTemplate(ws As Worksheet, tourNumber As String, tourName As
         End If
     Next i
     
-    ' First create a summary PDF with all stops for this tour
-    CreateTourSummaryPDFFromTemplate ws, tourNumber, tourName, pdfPath, totalWeight, totalVolume, tourStops
+    ' Check if this is a WAB tour by looking for "WAB" in the tour name
+    Dim isWABTour As Boolean
+    isWABTour = (InStr(1, UCase(tourName), "WAB", vbTextCompare) > 0)
     
-    ' Create a single combined Frachtbrief PDF with all stops
-    If stopCount > 0 Then
-        CreateCombinedFreightPDFFromTemplate ws, tourNumber, tourName, pdfPath, tourStops
+    If isWABTour Then
+        ' This is a WAB tour - create a loading list instead of summary
+        If stopCount > 0 Then
+            CreateLoadingListPDF ws, tourNumber, tourName, pdfPath, totalWeight, totalVolume, tourStops
+        End If
+    Else
+        ' Regular tour - create summary and freight PDFs
+        ' First create a summary PDF with all stops for this tour
+        CreateTourSummaryPDFFromTemplate ws, tourNumber, tourName, pdfPath, totalWeight, totalVolume, tourStops
+        
+        ' Create a single combined Frachtbrief PDF with all stops
+        If stopCount > 0 Then
+            CreateCombinedFreightPDFFromTemplate ws, tourNumber, tourName, pdfPath, tourStops
+        End If
     End If
 End Sub
+
+Sub CreateLoadingListPDF(ws As Worksheet, tourNumber As String, tourName As String, pdfPath As String, totalWeight As Double, totalVolume As Double, tourStops As Collection)
+    ' Create a loading list PDF for WAB tours
+    On Error GoTo ErrorHandler
+    
+    ' Create a new workbook for the loading list
+    Dim tempWb As Workbook
+    Set tempWb = Workbooks.Add
+    
+    ' Reference the template worksheet - you may need a specific template for WAB loading lists
+    Dim templateWs As Worksheet
+    On Error Resume Next
+    Set templateWs = ws.Parent.Worksheets("LoadingList_Template")
+    
+    If templateWs Is Nothing Then
+        ' Try Sheet1 as a fallback
+        Set templateWs = ws.Parent.Worksheets("Sheet1")
+        
+        If templateWs Is Nothing Then
+            MsgBox "Loading List template sheet not found in this workbook! Please add a sheet named 'LoadingList_Template'.", vbCritical
+            Exit Sub
+        End If
+    End If
+    On Error GoTo ErrorHandler
+    
+    ' Get tour information
+    Dim firstStopRow As Long, fullTourName As String
+    Dim vehicleInfo As String, deliveryDate As String
+    
+    firstStopRow = tourStops(1)
+    
+    ' Get full tour name
+    fullTourName = ""
+    If Not IsEmpty(ws.Cells(firstStopRow, 2).Value) Then
+        fullTourName = CStr(ws.Cells(firstStopRow, 2).Value)
+        While Right(fullTourName, 1) = "."
+            fullTourName = Left(fullTourName, Len(fullTourName) - 1)
+        Wend
+    End If
+    
+    ' Get vehicle info "Fahrzeug"
+    vehicleInfo = ""
+    If Not IsEmpty(ws.Cells(firstStopRow, 17).Value) Then
+        vehicleInfo = ws.Cells(firstStopRow, 17).Value
+    ElseIf Not IsEmpty(ws.Cells(firstStopRow, 19).Value) Then
+        ' Use "Frachtführer" as fallback when vehicle info is empty
+        vehicleInfo = "Frachtführer: " & ws.Cells(firstStopRow, 19).Value
+    End If
+    
+    ' Get delivery date "System Zustelldatum"
+    deliveryDate = ""
+    If Not IsEmpty(ws.Cells(firstStopRow, 15).Value) Then
+        If IsDate(ws.Cells(firstStopRow, 15).Value) Then
+            deliveryDate = Format(ws.Cells(firstStopRow, 15).Value, "dddd, dd.MM.yyyy")
+        Else
+            deliveryDate = CStr(ws.Cells(firstStopRow, 15).Value)
+        End If
+    End If
+    
+    ' Copy the template to the new workbook
+    On Error Resume Next
+    templateWs.Copy After:=tempWb.Sheets(tempWb.Sheets.count)
+    
+    If Err.Number <> 0 Then
+        ' If template copy fails, try simpler method
+        Err.Clear
+        tempWb.Sheets.Add After:=tempWb.Sheets(tempWb.Sheets.count)
+    End If
+    
+    ' Get the newly created sheet
+    Dim tempWs As Worksheet
+    Set tempWs = tempWb.Sheets(tempWb.Sheets.count)
+    
+    ' Rename the sheet
+    On Error Resume Next
+    tempWs.Name = "LoadingList"
+    If Err.Number <> 0 Then
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
+    
+    ' Replace header placeholders
+    On Error Resume Next
+    tempWs.UsedRange.Replace "[[TOUR_NAME]]", fullTourName, xlWhole
+    tempWs.UsedRange.Replace "[[TOUR_NUMBER]]", tourNumber, xlWhole
+    tempWs.UsedRange.Replace "[[Tour_DATE]]", deliveryDate, xlWhole
+    tempWs.UsedRange.Replace "[[VEHICLE]]", vehicleInfo, xlWhole
+    Err.Clear
+    On Error GoTo ErrorHandler
+    
+    ' Here you will add the specific formatting for the WAB loading list
+    ' This part should be customized based on your specific requirements
+    ' You would need to populate the template with relevant data
+    
+    ' For example, you might want to list all items to be loaded for this WAB tour
+    ' You would likely need additional columns like:
+    ' - Specific item numbers/IDs for WAB
+    ' - Special handling instructions
+    ' - Loading sequence
+    ' - Etc.
+    
+    ' This is where you would add the code to populate the loading list
+    ' with the specific information needed for WAB tours
+    
+    ' -------------------------------------------------------------
+    ' PLACEHOLDER: Add your specific WAB loading list formatting here
+    ' -------------------------------------------------------------
+    
+    ' Set print settings
+    With tempWs.PageSetup
+        .Orientation = xlPortrait
+        .PaperSize = xlPaperA4
+        .Zoom = False
+        .FitToPagesWide = 1
+        .FitToPagesTall = 1
+        .CenterHorizontally = True
+        .CenterVertically = False
+    End With
+    
+    ' Delete the first blank sheet
+    Application.DisplayAlerts = False
+    If tempWb.Sheets.count > 1 Then
+        tempWb.Sheets(1).Delete
+    End If
+    Application.DisplayAlerts = True
+    
+    ' Save as PDF
+    Dim pdfFileName As String
+    pdfFileName = pdfPath & "Tour_" & tourNumber & "_WAB_LoadingList.pdf"
+    
+    ' Export as PDF
+    tempWb.ExportAsFixedFormat Type:=xlTypePDF, Filename:=pdfFileName, Quality:=xlQualityStandard, _
+        IncludeDocProperties:=True, IgnorePrintAreas:=False, OpenAfterPublish:=False
+    
+    ' Close the workbook
+    tempWb.Close SaveChanges:=False
+    
+    Exit Sub
+    
+ErrorHandler:
+    MsgBox "Error creating WAB Loading List PDF for tour " & tourNumber & ": " & Err.description, vbCritical
+    On Error Resume Next
+    If Not tempWb Is Nothing Then
+        If tempWb.Name <> "" Then ' Check if workbook is still open
+            tempWb.Close SaveChanges:=False
+        End If
+    End If
+End Sub
+
+Function CreateTourFolderName(tourDate As String, tourName As String, tourNumber As String, Optional lieferWoche As String = "") As String
+    ' Enhanced function to create a tour folder name with the format MM_DD_TourNumber_TourName
+    ' Also uses the Lieferwoche (KW) information if provided
+    
+    On Error Resume Next
+    
+    Dim folderName As String
+    Dim dateParts() As String
+    Dim cleanedTourName As String
+    
+    ' Default folder name if we can't parse the date
+    cleanedTourName = tourName
+    
+    ' First, try to remove any date patterns from the tour name (like 09.04 or 30.04)
+    Dim regEx As Object
+    Set regEx = CreateObject("VBScript.RegExp")
+    
+    regEx.Global = True
+    regEx.Pattern = "\d{1,2}\.\d{1,2}"  ' Pattern for dates like 09.04 or 30.04
+    
+    ' Remove date patterns from tour name
+    cleanedTourName = regEx.Replace(cleanedTourName, "")
+    
+    ' Clean up extra spaces and "Tour" text that might remain
+    cleanedTourName = Replace(cleanedTourName, "Tour", "")
+    
+    ' Compress multiple spaces to single space
+    Do While InStr(cleanedTourName, "  ") > 0
+        cleanedTourName = Replace(cleanedTourName, "  ", " ")
+    Loop
+    
+    cleanedTourName = Trim(cleanedTourName)
+    
+    ' Try to parse the date from format like "07.04." to get MM_DD format
+    Dim monthStr As String, dayStr As String
+    monthStr = ""
+    dayStr = ""
+    
+    If InStr(tourDate, ".") > 0 Then
+        dateParts = Split(tourDate, ".")
+        
+        ' Check if we have at least month and day
+        If UBound(dateParts) >= 1 Then
+            monthStr = Trim(dateParts(0))
+            dayStr = Trim(dateParts(1))
+            
+            ' Make sure month and day are two digits
+            If Len(dayStr) = 1 Then dayStr = "0" & dayStr
+            If Len(monthStr) = 1 Then monthStr = "0" & monthStr
+        End If
+    End If
+    
+    ' If we couldn't get date from tourDate, try to extract from tour name
+    If monthStr = "" Or dayStr = "" Then
+        regEx.Pattern = "(\d{1,2})\.(\d{1,2})"
+        Dim matches As Object
+        Set matches = regEx.Execute(tourName)
+        
+        If matches.count > 0 Then
+            dayStr = matches(0).SubMatches(0)
+            monthStr = matches(0).SubMatches(1)
+            
+            ' Make sure month and day are two digits
+            If Len(dayStr) = 1 Then dayStr = "0" & dayStr
+            If Len(monthStr) = 1 Then monthStr = "0" & monthStr
+        End If
+    End If
+    
+    ' Create folder name with the format MM_DD_TOURNR_NAME
+    If monthStr <> "" And dayStr <> "" Then
+        folderName = monthStr & "_" & dayStr & "_" & tourNumber & "_" & cleanedTourName
+    Else
+        ' Fallback if we couldn't parse the date
+        folderName = "Tour_" & tourNumber & "_" & cleanedTourName
+    End If
+    
+    ' Replace any invalid characters for folder names
+    folderName = Replace(folderName, ":", "")
+    folderName = Replace(folderName, "/", "-")
+    folderName = Replace(folderName, "\", "-")
+    folderName = Replace(folderName, "?", "")
+    folderName = Replace(folderName, "*", "")
+    folderName = Replace(folderName, """", "")
+    folderName = Replace(folderName, "<", "")
+    folderName = Replace(folderName, ">", "")
+    folderName = Replace(folderName, "|", "-")
+    
+    ' Limit folder name length to avoid path too long errors
+    If Len(folderName) > 50 Then
+        folderName = Left(folderName, 50)
+    End If
+    
+    CreateTourFolderName = folderName
+End Function
+
+' Helper function to create a folder if it doesn't exist
+Function CreateFolderIfNotExist(folderPath As String) As Boolean
+    On Error Resume Next
+    
+    If Dir(folderPath, vbDirectory) = "" Then
+        MkDir folderPath
+    End If
+    
+    ' Check if creation was successful
+    CreateFolderIfNotExist = (Dir(folderPath, vbDirectory) <> "")
+    
+    On Error GoTo 0
+End Function
 
 Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tourName As String, pdfPath As String, totalWeight As Double, totalVolume As Double, tourStops As Collection)
     ' Create a multi-page summary PDF for all stops in a tour using the template
@@ -317,33 +637,33 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
     
     ' Get vehicle info
     vehicleInfo = ""
-    If Not IsEmpty(ws.Cells(firstStopRow, 25).Value) Then
-        vehicleInfo = ws.Cells(firstStopRow, 25).Value
+    If Not IsEmpty(ws.Cells(firstStopRow, 17).Value) Then
+        vehicleInfo = ws.Cells(firstStopRow, 17).Value
     End If
     
     ' Get delivery date
     deliveryDate = ""
-    If Not IsEmpty(ws.Cells(firstStopRow, 18).Value) Then
-        If IsDate(ws.Cells(firstStopRow, 18).Value) Then
-            deliveryDate = Format(ws.Cells(firstStopRow, 18).Value, "dddd, dd.MM.yyyy")
+    If Not IsEmpty(ws.Cells(firstStopRow, 15).Value) Then
+        If IsDate(ws.Cells(firstStopRow, 15).Value) Then
+            deliveryDate = Format(ws.Cells(firstStopRow, 15).Value, "dddd, dd.MM.yyyy")
         Else
-            deliveryDate = CStr(ws.Cells(firstStopRow, 18).Value)
+            deliveryDate = CStr(ws.Cells(firstStopRow, 15).Value)
         End If
     End If
     
     ' Get route info
     tourRoute = ""
-    If Not IsEmpty(ws.Cells(firstStopRow, 52).Value) Then
-        tourRoute = ws.Cells(firstStopRow, 52).Value
+    If Not IsEmpty(ws.Cells(firstStopRow, 40).Value) Then
+        tourRoute = ws.Cells(firstStopRow, 40).Value
     End If
     
     ' Get distance
     totalDistance = ""
-    If Not IsEmpty(ws.Cells(firstStopRow, 53).Value) Then
-        If IsNumeric(ws.Cells(firstStopRow, 53).Value) Then
-            totalDistance = Format(ws.Cells(firstStopRow, 53).Value, "#,##0.00") & " km"
+    If Not IsEmpty(ws.Cells(firstStopRow, 45).Value) Then
+        If IsNumeric(ws.Cells(firstStopRow, 45).Value) Then
+            totalDistance = Format(ws.Cells(firstStopRow, 45).Value, "#,##0.00") & " km"
         Else
-            totalDistance = ws.Cells(firstStopRow, 53).Value
+            totalDistance = ws.Cells(firstStopRow, 45).Value
         End If
     End If
     
@@ -354,8 +674,8 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
         Dim currentRow As Long, montagezeit As Double
         currentRow = tourStops(j)
         montagezeit = 0
-        If Not IsEmpty(ws.Cells(currentRow, 54).Value) And IsNumeric(ws.Cells(currentRow, 54).Value) Then
-            montagezeit = CDbl(ws.Cells(currentRow, 54).Value)
+        If Not IsEmpty(ws.Cells(currentRow, 41).Value) And IsNumeric(ws.Cells(currentRow, 41).Value) Then
+            montagezeit = CDbl(ws.Cells(currentRow, 41).Value)
         End If
         totalMontagezeit = totalMontagezeit + montagezeit
     Next j
@@ -508,8 +828,8 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
             
             ' Customer name
             recipientName = ""
-            If Not IsEmpty(ws.Cells(currentRow, 36).Value) Then
-                recipientName = CStr(ws.Cells(currentRow, 36).Value)
+            If Not IsEmpty(ws.Cells(currentRow, 28).Value) Then
+                recipientName = CStr(ws.Cells(currentRow, 28).Value)
             End If
             
             ' Address
@@ -518,16 +838,16 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
             recipientCity = ""
             recipientPostcode = ""
             
-            If Not IsEmpty(ws.Cells(currentRow, 37).Value) Then
-                recipientAddress = CStr(ws.Cells(currentRow, 37).Value)
+            If Not IsEmpty(ws.Cells(currentRow, 29).Value) Then
+                recipientAddress = CStr(ws.Cells(currentRow, 29).Value)
             End If
             
-            If Not IsEmpty(ws.Cells(currentRow, 38).Value) Then
-                recipientCity = CStr(ws.Cells(currentRow, 38).Value)
+            If Not IsEmpty(ws.Cells(currentRow, 30).Value) Then
+                recipientCity = CStr(ws.Cells(currentRow, 30).Value)
             End If
             
-            If Not IsEmpty(ws.Cells(currentRow, 39).Value) Then
-                recipientPostcode = CStr(ws.Cells(currentRow, 39).Value)
+            If Not IsEmpty(ws.Cells(currentRow, 31).Value) Then
+                recipientPostcode = CStr(ws.Cells(currentRow, 31).Value)
             End If
             
             fullAddress = recipientAddress
@@ -550,17 +870,17 @@ Sub CreateTourSummaryPDFFromTemplate(ws As Worksheet, tourNumber As String, tour
             End If
             
             montagezeit = 0
-            If Not IsEmpty(ws.Cells(currentRow, 54).Value) And IsNumeric(ws.Cells(currentRow, 54).Value) Then
-                montagezeit = CDbl(ws.Cells(currentRow, 54).Value)
+            If Not IsEmpty(ws.Cells(currentRow, 41).Value) And IsNumeric(ws.Cells(currentRow, 41).Value) Then
+                montagezeit = CDbl(ws.Cells(currentRow, 41).Value)
             End If
             
             ' Time window
             stopZeitRange = ""
-            If Not IsEmpty(ws.Cells(currentRow, 18).Value) Then
-                If IsDate(ws.Cells(currentRow, 18).Value) Then
+            If Not IsEmpty(ws.Cells(currentRow, 15).Value) Then
+                If IsDate(ws.Cells(currentRow, 15).Value) Then
                     Dim startTimeValue As Date, endTimeValue As Date
                     On Error Resume Next
-                    startTimeValue = CDate(Format(ws.Cells(currentRow, 18).Value, "hh:mm"))
+                    startTimeValue = CDate(Format(ws.Cells(currentRow, 15).Value, "hh:mm"))
                     
                     If Err.Number = 0 Then
                         ' Round to nearest hour
@@ -877,30 +1197,32 @@ Sub CreateCombinedFreightPDFFromTemplate(ws As Worksheet, tourNumber As String, 
         Dim nosContact As String, nosPhone As String, nosEmail As String
         Dim deliveryDate As String, serviceType As String
         Dim abInfo As String, buildingInfo As String, importantInfo As String, deliveryInfo As String
-        Dim stopWeight As Double, stopVolume As Double, montagezeit As Double
+        Dim stopWeight As Double, stopVolume As Double, montTime As Double, moveTime As Double, totalWorktime As Double
         Dim totalQuantity As String
+        Dim workers As String
 
         ' Extract all the data for this stop from the source worksheet
-        abNumber = ws.Cells(currentRow, 12).Value ' Column L
+        abNumber = ws.Cells(currentRow, 10).Value ' Column L
         
-        ' Get the total quantity from column AI (35)
+        ' Get the total quantity from column Z (27) "Stückzahl Gesamt"
         totalQuantity = ""
-        If Not IsEmpty(ws.Cells(currentRow, 35).Value) Then
-            totalQuantity = CStr(ws.Cells(currentRow, 35).Value)
+        If Not IsEmpty(ws.Cells(currentRow, 27).Value) Then
+            totalQuantity = CStr(ws.Cells(currentRow, 27).Value)
         End If
         
         ' Check if columns exist before trying to access
         artikelTypen = ""
-        If currentRow > 0 And ws.Columns.count >= 47 Then
-            If Not IsEmpty(ws.Cells(currentRow, 47).Value) Then
-                artikelTypen = CStr(ws.Cells(currentRow, 47).Value)
+        If currentRow > 0 And ws.Columns.count >= 37 Then
+            If Not IsEmpty(ws.Cells(currentRow, 37).Value) Then
+                artikelTypen = CStr(ws.Cells(currentRow, 37).Value)
             End If
         End If
         
+        ' Item Text
         warenText = ""
-        If currentRow > 0 And ws.Columns.count >= 48 Then
-            If Not IsEmpty(ws.Cells(currentRow, 48).Value) Then
-                warenText = CStr(ws.Cells(currentRow, 48).Value)
+        If currentRow > 0 And ws.Columns.count >= 38 Then
+            If Not IsEmpty(ws.Cells(currentRow, 38).Value) Then
+                warenText = CStr(ws.Cells(currentRow, 38).Value)
             End If
         End If
         
@@ -917,135 +1239,159 @@ Sub CreateCombinedFreightPDFFromTemplate(ws As Worksheet, tourNumber As String, 
         
         ' Customer info
         recipientName = ""
-        If Not IsEmpty(ws.Cells(currentRow, 36).Value) Then ' Column AI - Empfänger
-            recipientName = ws.Cells(currentRow, 36).Value
+        If Not IsEmpty(ws.Cells(currentRow, 28).Value) Then ' Column AB - "Empfänger"
+            recipientName = ws.Cells(currentRow, 28).Value
         End If
         
         recipientAddress = ""
-        If Not IsEmpty(ws.Cells(currentRow, 37).Value) Then ' Column AJ - Empf. Str.
-            recipientAddress = ws.Cells(currentRow, 37).Value
+        If Not IsEmpty(ws.Cells(currentRow, 29).Value) Then ' Column AJ - Empf. Str.
+            recipientAddress = ws.Cells(currentRow, 29).Value
         End If
         
         recipientCity = ""
-        If Not IsEmpty(ws.Cells(currentRow, 38).Value) Then ' Column AK - Empf. Ort
-            recipientCity = ws.Cells(currentRow, 38).Value
+        If Not IsEmpty(ws.Cells(currentRow, 30).Value) Then ' Column AK - Empf. Ort
+            recipientCity = ws.Cells(currentRow, 30).Value
         End If
         
         recipientPostcode = ""
-        If Not IsEmpty(ws.Cells(currentRow, 39).Value) Then ' Column AL - Empf. Plz
-            recipientPostcode = ws.Cells(currentRow, 39).Value
+        If Not IsEmpty(ws.Cells(currentRow, 31).Value) Then ' Column AL - Empf. Plz
+            recipientPostcode = ws.Cells(currentRow, 31).Value
         End If
         
-        ' NOS contact info (columns BK, BL, BM as per screenshot)
+        ' NOS contact "Ansprechpartner"
         nosContact = ""
-        If currentRow > 0 And ws.Columns.count >= 63 Then
-            If Not IsEmpty(ws.Cells(currentRow, 63).Value) Then
-                nosContact = CStr(ws.Cells(currentRow, 63).Value)
+        If currentRow > 0 And ws.Columns.count >= 46 Then
+            If Not IsEmpty(ws.Cells(currentRow, 46).Value) Then
+                nosContact = CStr(ws.Cells(currentRow, 46).Value)
             End If
         End If
         
         nosPhone = ""
-        If currentRow > 0 And ws.Columns.count >= 64 Then
-            If Not IsEmpty(ws.Cells(currentRow, 64).Value) Then
-                nosPhone = CStr(ws.Cells(currentRow, 64).Value)
+        If currentRow > 0 And ws.Columns.count >= 47 Then
+            If Not IsEmpty(ws.Cells(currentRow, 47).Value) Then
+                nosPhone = CStr(ws.Cells(currentRow, 47).Value)
             End If
         End If
         
         nosEmail = ""
-        If currentRow > 0 And ws.Columns.count >= 65 Then
-            If Not IsEmpty(ws.Cells(currentRow, 65).Value) Then
-                nosEmail = CStr(ws.Cells(currentRow, 65).Value)
+        If currentRow > 0 And ws.Columns.count >= 48 Then
+            If Not IsEmpty(ws.Cells(currentRow, 48).Value) Then
+                nosEmail = CStr(ws.Cells(currentRow, 48).Value)
             End If
         End If
         
-        ' Service and delivery info
+        ' Service and delivery info "Auftragsvariante"
         serviceType = ""
-        If Not IsEmpty(ws.Cells(currentRow, 10).Value) Then ' Column J - ServiceTyp
-            serviceType = ws.Cells(currentRow, 10).Value
+        If Not IsEmpty(ws.Cells(currentRow, 8).Value) Then ' Column H - Auftragsvariante
+            serviceType = ws.Cells(currentRow, 8).Value
         End If
         
-        ' Montagezeit info - check if column exists
-        montagezeit = 0
-        If currentRow > 0 And ws.Columns.count >= 54 Then
-            If Not IsEmpty(ws.Cells(currentRow, 54).Value) And IsNumeric(ws.Cells(currentRow, 54).Value) Then
-                montagezeit = CDbl(ws.Cells(currentRow, 54).Value)
+        ' montTime info - check if column exists
+        montTime = 0
+        If currentRow > 0 And ws.Columns.count >= 42 Then
+            If Not IsEmpty(ws.Cells(currentRow, 42).Value) And IsNumeric(ws.Cells(currentRow, 42).Value) Then
+                montTime = CDbl(ws.Cells(currentRow, 42).Value)
             End If
+        End If
+        
+        ' moveTime info - check if column exists
+        moveTime = 0
+        If currentRow > 0 And ws.Columns.count >= 43 Then
+            If Not IsEmpty(ws.Cells(currentRow, 43).Value) And IsNumeric(ws.Cells(currentRow, 43).Value) Then
+                moveTime = CDbl(ws.Cells(currentRow, 43).Value)
+            End If
+        End If
+        
+        ' totalWorktime info - check if column exists
+        totalWorktime = 0
+        If currentRow > 0 And ws.Columns.count >= 41 Then
+            If Not IsEmpty(ws.Cells(currentRow, 41).Value) And IsNumeric(ws.Cells(currentRow, 41).Value) Then
+                totalWorktime = CDbl(ws.Cells(currentRow, 41).Value)
+            End If
+        End If
+        
+        ' Workers "Mitarbeiter"
+        workers = ""
+        If Not IsEmpty(ws.Cells(currentRow, 39).Value) Then ' Column AM - Mitarbeiter
+            workers = ws.Cells(currentRow, 39).Value
         End If
         
         ' Get delivery date and time from System Zustelldatum (Column R)
         deliveryDate = ""
-        If Not IsEmpty(ws.Cells(currentRow, 18).Value) Then ' Column R - System Zustelldatum
-            If IsDate(ws.Cells(currentRow, 18).Value) Then
-                deliveryDate = Format(ws.Cells(currentRow, 18).Value, "dd.MM.yyyy HH:mm")
+        If Not IsEmpty(ws.Cells(currentRow, 15).Value) Then ' Column R - System Zustelldatum
+            If IsDate(ws.Cells(currentRow, 15).Value) Then
+                deliveryDate = Format(ws.Cells(currentRow, 15).Value, "dd.MM.yyyy HH:mm")
             Else
-                deliveryDate = CStr(ws.Cells(currentRow, 18).Value)
+                deliveryDate = CStr(ws.Cells(currentRow, 15).Value)
             End If
         End If
         
         ' Additional information fields - check if columns exist
         abInfo = ""
-        If currentRow > 0 And ws.Columns.count >= 42 Then
-            If Not IsEmpty(ws.Cells(currentRow, 42).Value) Then
-                abInfo = CStr(ws.Cells(currentRow, 42).Value)
+        If currentRow > 0 And ws.Columns.count >= 33 Then
+            If Not IsEmpty(ws.Cells(currentRow, 33).Value) Then
+                abInfo = CStr(ws.Cells(currentRow, 33).Value)
             End If
         End If
         
         buildingInfo = ""
-        If currentRow > 0 And ws.Columns.count >= 43 Then
-            If Not IsEmpty(ws.Cells(currentRow, 43).Value) Then
-                buildingInfo = CStr(ws.Cells(currentRow, 43).Value)
+        If currentRow > 0 And ws.Columns.count >= 34 Then
+            If Not IsEmpty(ws.Cells(currentRow, 34).Value) Then
+                buildingInfo = CStr(ws.Cells(currentRow, 34).Value)
             End If
         End If
         
         importantInfo = ""
-        If currentRow > 0 And ws.Columns.count >= 44 Then
-            If Not IsEmpty(ws.Cells(currentRow, 44).Value) Then
-                importantInfo = CStr(ws.Cells(currentRow, 44).Value)
+        If currentRow > 0 And ws.Columns.count >= 35 Then
+            If Not IsEmpty(ws.Cells(currentRow, 35).Value) Then
+                importantInfo = CStr(ws.Cells(currentRow, 35).Value)
             End If
         End If
         
         deliveryInfo = ""
-        If currentRow > 0 And ws.Columns.count >= 45 Then
-            If Not IsEmpty(ws.Cells(currentRow, 45).Value) Then
-                deliveryInfo = CStr(ws.Cells(currentRow, 45).Value)
+        If currentRow > 0 And ws.Columns.count >= 36 Then
+            If Not IsEmpty(ws.Cells(currentRow, 36).Value) Then
+                deliveryInfo = CStr(ws.Cells(currentRow, 36).Value)
             End If
         End If
         
         ' Replace all placeholders in the template
-        tempWs.UsedRange.Replace "[[TOUR_NUMBER]]", tourNumber, xlWhole
-        tempWs.UsedRange.Replace "[[TOUR_NAME]]", tourName, xlWhole
-        tempWs.UsedRange.Replace "[[Stop 1]]", "Stop " & stopNum, xlWhole
-        tempWs.UsedRange.Replace "[[Kunde_Name 1]]", recipientName, xlWhole
-        
-        ' Neuer Platzhalter für Tournummer + Stop
         tempWs.UsedRange.Replace "[[Tournummer + Stop]]", tourNumber & " - Stop " & stopNum, xlWhole
-        
-        ' Correct the placeholder names for volume, weight, and time
-        tempWs.UsedRange.Replace "[[Stop_1_V]]", Format(stopVolume, "#,##0.00") & " m³", xlWhole
-        tempWs.UsedRange.Replace "[[Stop_1_W]]", Format(stopWeight, "#,##0.00") & " kg", xlWhole
-        tempWs.UsedRange.Replace "[[Stop_1_Z]]", Format(montagezeit, "#,##0.00") & " h", xlWhole
-        
+        tempWs.UsedRange.Replace "[[Empfänger_Name]]", recipientName, xlWhole
         tempWs.UsedRange.Replace "[[AB-Nummer]]", abNumber, xlWhole
-        tempWs.UsedRange.Replace "[[Tour_DATE & Time]]", deliveryDate, xlWhole
-        tempWs.UsedRange.Replace "[[ServiceTyp]]", serviceType, xlWhole
+        tempWs.UsedRange.Replace "[[Tour_Date]]", deliveryDate, xlWhole
+        
+        ' OLD ????
+        tempWs.UsedRange.Replace "[[TOUR_NAME]]", tourName, xlWhole
+        
+        
+        ' Neuer Platzhalter für Kunden
         tempWs.UsedRange.Replace "[[Kunde_Str 1]]", recipientAddress, xlWhole
         tempWs.UsedRange.Replace "[[Kunde_Ort 1]]", recipientCity, xlWhole
         tempWs.UsedRange.Replace "[[Kunde_Plz 1]]", recipientPostcode, xlWhole
         
-        ' Replace NOS contact info placeholders
+        ' Replace NOS Contacts info placeholders
         tempWs.UsedRange.Replace "[[Nos_Ansprechpartner]]", nosContact, xlWhole
         tempWs.UsedRange.Replace "[[Nos_Tel]]", nosPhone, xlWhole
         tempWs.UsedRange.Replace "[[Nos_Mail]]", nosEmail, xlWhole
         
-        ' Remove old placeholders for customer contact info
-        tempWs.UsedRange.Replace "[[Kunde_Tel]]", "", xlWhole
-        tempWs.UsedRange.Replace "[[Kunde_Mail]]", "", xlWhole
-        tempWs.UsedRange.Replace "[[Kunde_Ansprechpartner]]", "", xlWhole
-        
+        ' Infos for SC-Leiter
         tempWs.UsedRange.Replace "[[AB Info]]", abInfo, xlWhole
         tempWs.UsedRange.Replace "[[Gebäudeinfo]]", buildingInfo, xlWhole
         tempWs.UsedRange.Replace "[[Wichtiger Hinweis Auftrag]]", importantInfo, xlWhole
         tempWs.UsedRange.Replace "[[Anlieferinfo]]", deliveryInfo, xlWhole
+        
+        ' Correct the placeholder names for volume, weight, and time
+        tempWs.UsedRange.Replace "[[ServiceTyp]]", serviceType, xlWhole
+        tempWs.UsedRange.Replace "[[Stop_1_V]]", Format(stopVolume, "#,##0.00") & " m³", xlWhole
+        tempWs.UsedRange.Replace "[[Stop_1_W]]", Format(stopWeight, "#,##0.00") & " kg", xlWhole
+        tempWs.UsedRange.Replace "[[Stop_1_MZ]]", Format(montTime, "#,##0.00") & " h", xlWhole
+        tempWs.UsedRange.Replace "[[Stop_1_VZ]]", Format(moveTime, "#,##0.00") & " h", xlWhole
+        tempWs.UsedRange.Replace "[[Stop_1_GZ]]", Format(totalWorktime, "#,##0.00") & " h", xlWhole
+        tempWs.UsedRange.Replace "[[Workers]]", workers, xlWhole
+        
+        ' Artikel-Data Start here
+        tempWs.UsedRange.Replace "[[Stop 1]]", "Stop " & stopNum, xlWhole
         
         ' Find any remaining placeholder in the sheet and clear it
         tempWs.UsedRange.Replace "[[Stop_1]]", "", xlWhole
@@ -1074,7 +1420,7 @@ Sub CreateCombinedFreightPDFFromTemplate(ws As Worksheet, tourNumber As String, 
         
         ' Last resort fallback
         If itemTableRow = 0 Then
-            itemTableRow = 25
+            itemTableRow = 31
         End If
         
         ' Process Artikel data - using the artikelTypen and warenText from the data
@@ -1107,11 +1453,11 @@ Sub CreateCombinedFreightPDFFromTemplate(ws As Worksheet, tourNumber As String, 
             Dim colPosition As Long, colQuantity As Long, colItemNumbers As Long, colItemName As Long, colIcon As Long
             
             ' Updated column positions (start at 1)
-            colPosition = 1     ' B: Position
-            colItemNumbers = 2  ' C-D are merged for item numbers
+            colPosition = 1     ' A: Position
+            colItemNumbers = 2  ' B-D are merged for item numbers
             colItemName = 5     ' E-F are merged for item name
-            colQuantity = 7     ' A: Stückzahl Gesamt
-            colIcon = 8         ' G is for Icon
+            colQuantity = 7     ' G: Stückzahl Gesamt
+            colIcon = 8         ' H is for Icon
             
             ' First, count how many items we'll have
             Dim itemCount As Long
@@ -1914,4 +2260,53 @@ End Function
 Function GetHeaderIcon() As String
     ' Returns the icon reference to use as a header for multiple items
     GetHeaderIcon = "A7" ' Stift-Symbol für Überschrift
+End Function
+
+Function GetKWFromLieferwoche(lieferWocheStr As String) As String
+    ' Extract KW number from Lieferwoche format (e.g., 202515 -> "15")
+    
+    Dim kwNumber As String
+    kwNumber = ""
+    
+    ' Try to extract the last 2 digits
+    If Len(lieferWocheStr) >= 2 Then
+        kwNumber = Right(lieferWocheStr, 2)
+        
+        ' If it starts with a zero, remove it
+        If Left(kwNumber, 1) = "0" Then
+            kwNumber = Right(kwNumber, 1)
+        End If
+    End If
+    
+    GetKWFromLieferwoche = kwNumber
+End Function
+
+Function ExtractSCLocationFromTour(tourName As String) As String
+    ' Extract the Service Center location from the tour name
+    
+    Dim scLocation As String
+    scLocation = "Unknown"
+    
+    ' Convert to uppercase for easier comparison
+    Dim upperName As String
+    upperName = UCase(tourName)
+    
+    ' Check for each potential location
+    If InStr(upperName, "INNSBRUCK") > 0 Then
+        scLocation = "Innsbruck"
+    ElseIf InStr(upperName, "GRAZ") > 0 Then
+        scLocation = "Graz"
+    ElseIf InStr(upperName, "KLAGENFURT") > 0 Then
+        scLocation = "Klagenfurt"
+    ElseIf InStr(upperName, "DORNBIRN") > 0 Then
+        scLocation = "Dornbirn"
+    ElseIf InStr(upperName, "LINZ") > 0 Then
+        scLocation = "Linz"
+    ElseIf InStr(upperName, "WIENER") > 0 Or InStr(upperName, "WIEN") > 0 Then
+        scLocation = "Wiener-Neudorf"
+    ElseIf InStr(upperName, "HALL") > 0 Then
+        scLocation = "Innsbruck" ' Hall is near Innsbruck
+    End If
+    
+    ExtractSCLocationFromTour = scLocation
 End Function
