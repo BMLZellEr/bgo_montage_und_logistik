@@ -154,6 +154,8 @@ Danke im Voraus.
 - **Riesige-Liste von 100 Artikeln** => Vorhanden => Kösung finden um Daten nachzureichen => Hali Vergleich / Bene fragen?
 - **Alex 💚** helfen sie brauchen jemadnen um das zu checken!
 
+## 
+
 ## ⛰️ Vorarlberg ist Anders (ULGB)
 - **Voralberg** => Wie ist die **Zusammenarbeit mit ULBG** (Wie Isabel ? Wer 📗 Avisiert ?)
 - **Helmuth** => Stellt Tour nach Kunden zusammen => Mail mit **Listen wie SC-Leiter** nur ohne **Stops**
