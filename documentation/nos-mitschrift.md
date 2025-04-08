@@ -154,8 +154,6 @@ Danke im Voraus.
 - **Riesige-Liste von 100 Artikeln** => Vorhanden => Kösung finden um Daten nachzureichen => Hali Vergleich / Bene fragen?
 - **Alex 💚** helfen sie brauchen jemadnen um das zu checken!
 
-## 
-
 ## ⛰️ Vorarlberg ist Anders (ULGB)
 - **Voralberg** => Wie ist die **Zusammenarbeit mit ULBG** (Wie Isabel ? Wer 📗 Avisiert ?)
 - **Helmuth** => Stellt Tour nach Kunden zusammen => Mail mit **Listen wie SC-Leiter** nur ohne **Stops**
@@ -194,7 +192,7 @@ Danke im Voraus.
 
 | Kennzeichen | Fahrzeugklasse (3,5t/7,5t/LKW) | max. Volumen(m³) | max. Gewicht(kg) | Fahrzeug Modell | Kommentar |
 | --- | --- | --- | --- | --- | --- |
-| **WY-871AW** | **3,5t** | X | ~300kg | Fiat Ducato | |
+| **WY-871AW** | **3,5t** | 10m³ | ~500kg | Fiat Ducato | |
 | **WY-742AT** | **7,5t** | ~15m³ | ~1500kg | Iveco Eurocargo | SC WNeudorf ? |
 | **WY-307AX** | **LKW & Hänger** | 30m³ | X | LKW | |
 | **WY-308AX** | **LKW & Hänger** | 30m³ | X | LKW | |
