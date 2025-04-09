@@ -21,10 +21,10 @@
 ## Frachtbriefe & Touren-Summen-Blätter
 
 ### Frachtbriefe Cargo-Designer:
-Order.Referenz2 Multiple Strings in the Format: ||||
-Aviso.Mail
-Avisio.Tel
-Aviso.name
+- Order.Referenz2 Multiple Strings in the Format: ||||
+- Aviso.Mail
+- Avisio.Tel
+- Aviso.name
 
 ### Summenblätter
 - Add AB-NR per Stop
