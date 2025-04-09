@@ -20,6 +20,12 @@
 
 ## Frachtbriefe & Touren-Summen-Blätter
 
+### Frachtbriefe Cargo-Designer:
+Order.Referenz2 Multiple Strings in the Format: ||||
+Aviso.Mail
+Avisio.Tel
+Aviso.name
+
 ### Summenblätter
 - Add AB-NR per Stop
 - Fix Stop-Times to round down to full hour.
