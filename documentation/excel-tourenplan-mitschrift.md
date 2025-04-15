@@ -7,41 +7,6 @@
 - **💡 Make Save_for_SC_Leiter_Button => Combine with auto. mails an SC-Leiter**
 - **💡 If Possible if make KW_Switcher load Autosave_Files or atleast Extract Data and refill.** => **SUPER HARD 💀 => 💚 DONE WORKING**
 - **💡 Make Cargo-Support => Excel-Tours Programm that adds Missing Data**
-- **💡 Got hint from Ante about Exoport of CS_DATA**
-
-## SC WNeudorf Roman Liste Fixes!!
-- **💡 2 BML + $HELMUT_ZAHL M**
-- **💡 Falls Montage mehrere Tage geht**
-- **💡 Kennezciehn von M-Bussen => Werden nur MBUS**
-- **💡 Helmut Montage_Tage**
-- **💡 Farben aufpassen => Für Tage verwenden nicht gleich**
-- **💡 SC für Lager-Lieferung**
-- **💡 Speditions Kusztrich => Komplett Weg**
-
-## Frachtbriefe & Touren-Summen-Blätter
-
-### Frachtbriefe Cargo-Designer:
-- Order.Referenz2 Multiple Strings in the Format: ||||
-- Aviso.Mail
-- Avisio.Tel
-- Aviso.name
-
-### Summenblätter
-- Add AB-NR per Stop
-- Fix Stop-Times to round down to full hour.
-
-### Frachtbriefe:
-- Gesamtstückzahl FUCK
-- Add Icons
-
-### SC-Leiter
-- Florian will Teams Nachricht bei Update der PDF's 
-
-### NOS
-- MICHAEL DAVIS von NOS => Data Guy
-- Position_Nummer => Gesamtstückzahl ??? 
-- Artikel-Liste ?? 
-
 
 ## Tipps für Excel-Listen: [Excel_Listen_Immer_pro_KW$$]
 - Werden **LIVE am Onedrive Ordner bearbeitet** 💀
@@ -64,7 +29,6 @@
     - 💚 NOS  - 🟢 - $Hersteller_N => 🔵 Schrift
     - 💙 HALI - 🔵 - $Hersteller_H => 🟢 Schrift
     - ❤️ BENE - 🔴 - $Hersteller_B => ⚫ Schrift
-
 
 - Lösung für mich => **Local_Excel_File mit Extra Infos und Calculations für Lademenge etc**
 - **Force Sync** => **SC_Leiter_Excel_File + Removal of extra Infos**
