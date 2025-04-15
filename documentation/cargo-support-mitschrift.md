@@ -44,12 +44,9 @@
 | **SC WAB für ULGB MI** | **SC WAB für ULGB $WT(TT)** | **[⛰️ ULGB Voradelberg ist Anders](%EF%B8%8F-vorarlberg-ist-anders)** <br> Lager-WAB Mittwoch <br> Voradelberg **immer "Platz"** |
 | **ULGB Feldkirch - Dornbirn FR** | **ULGB $ORT_S $ORT_E $WT(TT)** | **[⛰️ ULGB Voradelberg ist Anders](%EF%B8%8F-vorarlberg-ist-anders)** <br> Tour am Freitag (lt. ULGB) |
 
+# 💎 Infos Cargo-Support
 
-# 🚥 Cargo-Support for Dummies 🚥
-
-## 💎 Infos Cargo-Support
-
-# Cargo Support Tickets - Live-System
+## Cargo Support Tickets - Live-System
 
 ## 🐞 Bugs and Possible Bugs
 
