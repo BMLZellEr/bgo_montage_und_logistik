@@ -111,7 +111,6 @@
 ## Übernahme Aufträge die Hänhgengeblieben sind
 - CS-Job => Ladung Import Aufträge => Orange Felder sind neu
 
-
 ## Export der DB in Excel
 - Rechtsklick auf Spalte => Exportiere Tabelle
 
@@ -242,64 +241,5 @@
 
 ## Export zum Hersteller
 - Bei **NOS 💚** leider noch **keine Möglichkeit (Schnittstelle)** in Software-2020 zu **exportieren.**
-- Export => **Rechtsclick auf Datensatz oder markieren mehrerer Datensätze** => Button: **"Aktion->BGO Tourenfeedback"**  
+- Export => **Rechtsclick auf Datensatz oder markieren mehrerer Datensätze** => Button: **"Aktion->BGO Tourenfeedback"** 
 
-## Weird Shit
-- ❌ Useless_Felder == **Startzeit_ab** & **Startzeit_bis** & **Freitext_2** & **Freitext_3** & **ab** & **von(B)** & **bis (B)** & **bis** & **von (E)** & **bis(E)**
-- Felder
-- Es soll Felder geben die wenn man sie verstellt sind sie für alle verstellet ??? (UNSURE ASK BIG BOSS) 
-- Button: **Tour drehen** & **Tour optimieren** im Virtuelle_Touren Fenster funktionieren nicht. 
-
-## Watch Guides from Web and Read Website - Maybe someuseful Infos
-- Übung 1 | done | (CS-JOB) => Watch @ home 
-- Übung 2 | done | Partly Useful => Frachtbriefe etc.
-- Übung 3 | done | (CS-JOB) => Watch @ home 
-- Übung 4 | done | (CS-JOB) => Watch @ home 
-- Übung 5 | done | (CS-JOB) => Watch @ home 
-- Übung 6 | done | (CS-JOB) => Probably also Useful for (CS-PLAN) =>
-    - Spalten-Ausrichtung und Namensänmderung => wie in Profi-Tour + Fixieren möglich
-        - Maske bearbeiten => Layout editieren
-    - Funktionszeile links unten => Anzahl der Datensätze
-    - Gruppieren möglich (Spalte nach oben ziehen => Seems Useless but maybe good => Thats how "Dispo-Fenster" is done probably
-        - Gruppieren => Feature für Disponmiert/Offen Spalte => Wieso nicht mit Fahrtstatus ? 
-    - Vorsicht Änderungen der Ansicht werden nicht auto. gespeichert => Rechts oben Safe-Icon => Dropdown-Menu
-    - Datums-Filter-Einstellungen probably wrong for us "BGO"
-    - Grundfilter seems useful => DB-Makro to mark when 2 or more Variables fit the case!
-    - Freigabe von Bildschirmeinstellungen
-- Übung 7 | done | (CS-JOB) => Watch @ home (Fahrer/Mitarbeiter-Anlage)
-- Übung 8 | done | USEFUL (CS-PLAN)
-    - Reiter Offen/Disponiert => DB-Ansicht => Unten/Oben
-    - Reiter Live-Dispo useful zur Kontrolle
-    - Änderungen/TV => Suche über Filter: Auftragsnummer, WAB-Nummer etc.
-    - Alle Änderungen für Fahrzeug,Cont, etc. über Dropdown in DB-Ansicht möglich
-    - Multi-Druck möglich => Makieren & "F6"
-- Übung 9 | done | USEFUL (CS-PLAN)
-    - Containerdispo => Zeile oben mit Reitern => Daten ergänzen die in CS-JOB nicht richtig eingeben wurden
-    - Adresse ändern => Makieren => Reiter **Wegpunkte** => SC-GRAZ etc. (Excel funktion mit Runterziehen possible) 
-    - Rechtsclick -> **Auftragsdaten ergänzen** -> BS_DATUM, AUFN_DATUM etc. => Siehe unten!
-    - Rechtsclick -> **Containernummer ändern** => Sub_Window
-    - CS_PLAN => Fahrt =! Tour ==> Fahrt = DIREKT_BAUSTELLE || Tour = Lager-WAB + Unter-Touren
-    - DIREKT_BAUSTELLE => Auswahl der Datensätze (30m³) => Rechtsclick => **Zur Tour verbinden**
-    - ZU_TOUR_VERBINDEN_FENSTER ==> **Siehe unten** == Mitschrift =! Videos 
-    - TOUR_UND_NEUE_FAHRT_FENSTER ==> **Open Software and Check out** => Drag&Drop => Video unclear
-    - Rechtsclick auf **Datensatz in bestehender Tour** => Fahrt aus Tour entfernen == **Stopp auflösen in Profi-Tour**
-
-- Übung 10 | half done | USEFUL (CS-PLAN) => Getting Tired continue tommorw
-- Übung 11 | X | 
-
-## Pros & Cons (Profi-Tour VS Cargo-Support)
-- BIG PRO = Fahrzeuge / Datum / Container & mehr kann **alles aus der DB-Ansicht gemacht** werden!
-- BIG PRO = Programm ist um einiges **Modularer** als Profi-Tour (Fenster-Settings and how they behaive is still pretty buggy)
-- BIG PRO = **Frachtbrief & Tourenplan & Transportauftrag** aus **DB-Ansicht** Druckbar (Siehe oben bei Filter)
-- PRO = Gebiete sind viel deutlicher aufgeteilt => **Zonen >>> Bundesländer** (Way better for my Brain, better logic) 
-- PRO = Postaufträge werden komplett automatisch verarbeitet! => 0 User Input (saving lots of useless loadtimes also Mistakes)
-- PRO = DIREKT_BAUSTELLE Aufträge komplett in DB-Ansicht planbar! (saving lots of useless loadtimes)
-- PRO = Definitv mehr Möglichkeiten um Ansichten zu verändern (Dunno how Useful)
-
-- BIG CON = Work is in two seperate Programs => CS-JOB & CS-PLAN (Profi-Tour DB-Ansicht = Teil von CS-JOB)
-- BIG CON = Aktualisieren "F5" is necessary
-- BIG CON = Programm ist deutlich langsamer als Profi-Tour & Keine Ladeanzeige!
-- BIG CON = Minimap is way worse than Profi-Tour => G-Maps API is perfect => But no Coloring of Dots is horrible & Loadingtimes are also horrible
-- Tiny CON = Keinen "KW" Filter in DB-Ansicht
-- Tiny CON = Steilere Lernkurve
-- UNSURE = **Planungspool** - Maybe better maybe worse not sure yet.  
