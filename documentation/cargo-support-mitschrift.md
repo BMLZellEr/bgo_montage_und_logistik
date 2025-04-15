@@ -49,23 +49,6 @@
 
 ## 💎 Infos Cargo-Support
 
-## Personal
-- As I use it more and more its actually sad that the Software got cancelet it could have been great Software.
-- It needs big fixes and a lot of performace imporvements but the featureset is actually fucking big.
-- I wonder can closed source software actually be a good thing ?
-- Is there a Open-Source Tourenplanung-Software ? If not maybe a good buisness idea
-
-## DB-Ansicht besteht aus 2 Teilen
-- Oben => Datenbank => Unverplante Datensätze ==> Pretty much 1:1 Datenbank-Ansicht in Profitour
-- Unten => Disponiert => Verplante Datensätze ==> Touren-Fenster in Profitour => in DB-Ansicht sichtbar!
-- **Datensätze in Roter Schrift** sind **Regie-Aufträge** => **Keine ❌📦 Produktion**
-- Standartansicht => **Std. Dispo Basis** => laut CS-Video
-- Aufträge können direkt in **DB-Ansicht gefilterd** werden => Feld: **Auftrags-Nr.**
-- Fahrzeug: Dropdown
-- Fahrtstatus in Standartansicht => Rechts => Disponiert / Offen => Bei uns Unten/Oben
-- Frachtbrief & Tourenplan & Transportauftrag & Auftragsbest => Alle von **DB-Ansicht** aus **druckbar** => **"F6"**
-- **Wichtig** = Arbeitsweise ist anders als in Profi-Tour => Zuerst Lager-WAB planen & Anschließend Tour teilen
-
 # Cargo Support Tickets - Live-System
 
 ## 🐞 Bugs and Possible Bugs
@@ -241,5 +224,22 @@
 
 ## Export zum Hersteller
 - Bei **NOS 💚** leider noch **keine Möglichkeit (Schnittstelle)** in Software-2020 zu **exportieren.**
-- Export => **Rechtsclick auf Datensatz oder markieren mehrerer Datensätze** => Button: **"Aktion->BGO Tourenfeedback"** 
+- Export => **Rechtsclick auf Datensatz oder markieren mehrerer Datensätze** => Button: **"Aktion->BGO Tourenfeedback"**
+
+## Personal
+- As I use it more and more its actually sad that the Software got cancelet it could have been great Software.
+- It needs big fixes and a lot of performace imporvements but the featureset is actually fucking big.
+- I wonder can closed source software actually be a good thing ?
+- Is there a Open-Source Tourenplanung-Software ? If not maybe a good buisness idea
+
+## DB-Ansicht besteht aus 2 Teilen
+- Oben => Datenbank => Unverplante Datensätze ==> Pretty much 1:1 Datenbank-Ansicht in Profitour
+- Unten => Disponiert => Verplante Datensätze ==> Touren-Fenster in Profitour => in DB-Ansicht sichtbar!
+- **Datensätze in Roter Schrift** sind **Regie-Aufträge** => **Keine ❌📦 Produktion**
+- Standartansicht => **Std. Dispo Basis** => laut CS-Video
+- Aufträge können direkt in **DB-Ansicht gefilterd** werden => Feld: **Auftrags-Nr.**
+- Fahrzeug: Dropdown
+- Fahrtstatus in Standartansicht => Rechts => Disponiert / Offen => Bei uns Unten/Oben
+- Frachtbrief & Tourenplan & Transportauftrag & Auftragsbest => Alle von **DB-Ansicht** aus **druckbar** => **"F6"**
+- **Wichtig** = Arbeitsweise ist anders als in Profi-Tour => Zuerst Lager-WAB planen & Anschließend Tour teilen
 
