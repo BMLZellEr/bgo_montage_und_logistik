@@ -79,14 +79,13 @@
 **[![Interactive Dispatcher Map](https://github.com/BMLZellEr/bgo_montage_und_logistik/raw/main/austria_cargo_zone_map/Screenshot_Map.png)](https://bmlzeller.github.io/bgo_montage_und_logistik/austria_cargo_zone_map/index.html)**
 
 
-
 | Zone | SC | PLZ |
 | --- | --- | --- |
-| **A B C E** | **W.Neudorf Roman** |  |
+| **A B C E** | **W.Neudorf** |  |
 | **H D** | **Linz Öhlinger** | |
-| **F** | **Graz Koeck** |  |
-| **G** | **Klagenfurt Koeck** |  |
-| **I** | **Innsbruck Thonhauser** |  |
+| **F** | **Graz** |  |
+| **G** | **Klagenfurt** |  |
+| **I** | **Innsbruck** |  |
 | **J** | **Dornbirn ULGB** |  |
 
 ## 🚚 Transportbestellung
